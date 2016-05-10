@@ -34,9 +34,9 @@
     <url>http://wso2.org</url>
 
     <scm>
-        <url>https://github.com/wso2-extensions/identity-application-auth-iwa.git</url>
-        <developerConnection>scm:git:https://github.com/wso2-extensions/identity-application-auth-iwa.git</developerConnection>
-        <connection>scm:git:https://github.com/wso2-extensions/identity-application-auth-iwa.git</connection>
+        <url>https://github.com/wso2-extensions/identity-local-auth-iwa.git</url>
+        <developerConnection>scm:git:https://github.com/wso2-extensions/identity-local-auth-iwa.git</developerConnection>
+        <connection>scm:git:https://github.com/wso2-extensions/identity-local-auth-iwa.git</connection>
         <tag>HEAD</tag>
     </scm>
 

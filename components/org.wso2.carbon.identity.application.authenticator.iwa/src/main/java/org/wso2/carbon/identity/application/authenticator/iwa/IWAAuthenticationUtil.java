@@ -44,7 +44,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
- * this class process the kerberos token and create server credentials
+ * Util class for IWA Authenticator
  */
 public class IWAAuthenticationUtil {
 

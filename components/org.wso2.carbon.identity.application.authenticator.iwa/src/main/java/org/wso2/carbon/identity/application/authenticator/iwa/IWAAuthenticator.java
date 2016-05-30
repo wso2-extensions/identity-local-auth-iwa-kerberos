@@ -67,6 +67,7 @@ public class IWAAuthenticator extends AbstractIWAAuthenticator implements
 
             // get the authenticated username by processing the GSS Token
             authenticatedUserName = getAuthenticatedUserFromToken(Base64.decode(gssToken));
+
             if (IdentityUtil.isBlank(authenticatedUserName)) {
                 throw new AuthenticationFailedException("Authenticated user not found in GSS Token");
             }
@@ -77,8 +78,7 @@ public class IWAAuthenticator extends AbstractIWAAuthenticator implements
         authenticatedUserName = authenticatedUserName.substring(0, index);
 
         if (log.isDebugEnabled()) {
-            log.debug("Authenticate request received : AuthType - " + request.getAuthType()
-                    + ", User - " + authenticatedUserName);
+            log.debug("Authenticated user : " + authenticatedUserName);
         }
 
         boolean isExistInPrimaryUserStore;
@@ -98,10 +98,7 @@ public class IWAAuthenticator extends AbstractIWAAuthenticator implements
         }
 
         if (!isExistInPrimaryUserStore) {
-            if (log.isDebugEnabled()) {
-                log.debug("user authentication failed, user '" + authenticatedUserName +
-                        "' is not found in user store of " + spTenantDomain + " tenant Domain");
-            }
+            log.error("User " + authenticatedUserName + "not found in the user store of tenant " + spTenantDomain);
             throw new AuthenticationFailedException("Authentication Failed");
         }
 

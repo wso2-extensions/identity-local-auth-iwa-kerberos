@@ -30,6 +30,7 @@ import org.wso2.carbon.identity.application.authentication.framework.context.Aut
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.application.common.model.Property;
+import org.wso2.carbon.identity.core.util.IdentityUtil;
 
 import javax.security.auth.login.LoginException;
 import javax.servlet.http.HttpServletRequest;
@@ -44,7 +45,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implements FederatedApplicationAuthenticator {
 
     public static final String AUTHENTICATOR_NAME = "IWAFederatedAuthenticator";
-    public static final String AUTHENTICATOR_FRIENDLY_NAME = "iwa federated";
+    public static final String AUTHENTICATOR_FRIENDLY_NAME = "IWA federated";
 
     private static final long serialVersionUID = -713445365110141169L;
 
@@ -55,45 +56,60 @@ public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implemen
     protected void processAuthenticationResponse(HttpServletRequest request, HttpServletResponse response, AuthenticationContext context) throws AuthenticationFailedException {
         super.processAuthenticationResponse(request, response, context);
 
-        Map authenticatorProperties = context.getAuthenticatorProperties();
-        String kerberosServer = (String) authenticatorProperties.get(IWAConstants.KERBEROS_SERVER);
+        HttpSession session = request.getSession(false);
+        // get the authenticated username directly if the request is from localhost
+        String authenticatedUserName = (String) session.getAttribute(IWAConstants.USER_NAME);
 
-        // get credentials for the kerberos server
-        GSSCredential gssCredential = IWAAuthenticationUtil.getCredentials(kerberosServer);
+        if (IdentityUtil.isBlank(authenticatedUserName)) {
+            Map authenticatorProperties = context.getAuthenticatorProperties();
+            String kerberosServer = (String) authenticatorProperties.get(IWAConstants.KERBEROS_SERVER);
 
-        try {
-            // create server credentials for KDC
-            if (gssCredential == null) {
-                String servicePrincipalName = (String) authenticatorProperties.get(IWAConstants.SPN_NAME);
-                String servicePrincipalPassword = (String) authenticatorProperties.get(IWAConstants.SPN_PASSWORD);
+            // get credentials for the kerberos server
+            GSSCredential gssCredential = IWAAuthenticationUtil.getCredentials(kerberosServer);
 
-                gssCredential = IWAAuthenticationUtil.createCredentials(kerberosServer, servicePrincipalName,
-                        servicePrincipalPassword);
+            try {
+                // create server credentials for KDC
+                if (gssCredential == null) {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Server credentials not available for " + kerberosServer);
+                    }
+                    String servicePrincipalName = (String) authenticatorProperties.get(IWAConstants.SPN_NAME);
+                    String servicePrincipalPassword = (String) authenticatorProperties.get(IWAConstants.SPN_PASSWORD);
+
+                    gssCredential = IWAAuthenticationUtil.createCredentials(kerberosServer, servicePrincipalName,
+                            servicePrincipalPassword);
+                    if (log.isDebugEnabled()) {
+                        log.debug("Created new server credentials for " + kerberosServer);
+                    }
+                }
+
+            } catch (PrivilegedActionException | LoginException | GSSException ex) {
+                throw new AuthenticationFailedException("Cannot create kerberos credentials for server.", ex);
             }
 
-        } catch (PrivilegedActionException | LoginException | GSSException ex) {
-            throw new AuthenticationFailedException("Cannot create kerberos credentials for server.", ex);
+            final String gssToken = (String) session.getAttribute(IWAConstants.GSS_TOKEN);
+
+            // get the authenticated username from the GSS Token
+            authenticatedUserName = getAuthenticatedUserFromToken(gssCredential, Base64.decode(gssToken));
+
+            if (StringUtils.isEmpty(authenticatedUserName)) {
+                throw new AuthenticationFailedException("Authenticated user not found in GSS Token");
+            }
         }
 
-        HttpSession session = request.getSession(false);
-        final String gssToken = (String) session.getAttribute(IWAConstants.GSS_TOKEN);
-
-        // get the authenticated username from the GSS Token
-        String AuthenticatedUserName = getAuthenticatedUserFromToken(gssCredential, Base64.decode(gssToken));
-
-        if (StringUtils.isEmpty(AuthenticatedUserName)) {
-            throw new AuthenticationFailedException("Authenticated user not found in GSS Token");
+        if (log.isDebugEnabled()) {
+            log.debug("Authenticated user extracted : " + authenticatedUserName);
         }
 
         // remove the AD domain from the username
-        int index = AuthenticatedUserName.lastIndexOf("@");
-        AuthenticatedUserName = AuthenticatedUserName.substring(0, index);
+        int index = authenticatedUserName.lastIndexOf("@");
+        authenticatedUserName = authenticatedUserName.substring(0, index);
 
         if (log.isDebugEnabled()) {
-            log.debug("Authenticate request received : AuthType - " + request.getAuthType() + ", User - " + AuthenticatedUserName);
+            log.debug("Federated user Authenticated : " + authenticatedUserName);
         }
 
-        context.setSubject(AuthenticatedUser.createFederateAuthenticatedUserFromSubjectIdentifier(AuthenticatedUserName));
+        context.setSubject(AuthenticatedUser.createFederateAuthenticatedUserFromSubjectIdentifier(authenticatedUserName));
     }
 
     @Override

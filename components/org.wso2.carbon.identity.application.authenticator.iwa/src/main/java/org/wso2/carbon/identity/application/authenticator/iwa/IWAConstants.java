@@ -37,11 +37,15 @@ public class IWAConstants {
     public static final String NTLM_PROLOG = "TlRMTVNT";
     public static final String SPN_NAME = "SPNName";
     public static final String SPN_PASSWORD = "SPNPassword";
+    public static final String KDC_REALM = "KDCRealm";
     public static final String SERVER = "Server";
     public static final String USER_NAME = "user.name";
     public static final String OID = "1.3.6.1.5.5.2";
+    public static final String GSS_TOKEN = "gssToken";
 
+    public static final String KERBEROS_SERVER = "kerberosServer";
     public static final String KERBEROS_CONFIG_FILE = "java.security.auth.krb5.conf";
+    public static final String KERBEROS_CONF_FILE_NAME = "krb5.conf";
 
 
     private IWAConstants() {

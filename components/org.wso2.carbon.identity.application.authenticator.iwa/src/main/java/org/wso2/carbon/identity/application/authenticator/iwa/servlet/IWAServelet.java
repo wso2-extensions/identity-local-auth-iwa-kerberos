@@ -22,7 +22,7 @@ import org.apache.axiom.om.util.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.ietf.jgss.GSSException;
-import org.wso2.carbon.identity.application.authenticator.iwa.AuthenticationHandlerUtil;
+import org.wso2.carbon.identity.application.authenticator.iwa.IWAAuthenticationUtil;
 import org.wso2.carbon.identity.application.authenticator.iwa.IWAAuthenticator;
 import org.wso2.carbon.identity.application.authenticator.iwa.IWAConstants;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
@@ -55,59 +55,44 @@ public class IWAServelet extends HttpServlet {
             throws ServletException, IOException {
         String commonAuthURL = IdentityUtil.getServerURL(IWAConstants.COMMON_AUTH_EP, false, true);
         String param = request.getParameter(IWAConstants.IWA_PARAM_STATE);
-        String name;
         if (param == null) {
             throw new IllegalArgumentException(IWAConstants.IWA_PARAM_STATE + " parameter is null.");
         }
         commonAuthURL += "?" + IWAConstants.IWA_PARAM_STATE + "=" + URLEncoder.encode(param, IWAConstants.UTF_8) +
                 "&" + IWAAuthenticator.IWA_PROCESSED + "=1";
 
+        // extract authorization header
         String header = request.getHeader(IWAConstants.AUTHORIZATION_HEADER);
-        //if request is local host
-        if (this.isLocalhost(request)) {
-            name = AuthenticationHandlerUtil.doLocalhost();
-        } else if (header != null) {
-            // log the user in using the token
-            String token = header.substring(IWAConstants.NEGOTIATE_HEADER.length() + 1);
-            if (token.startsWith(IWAConstants.NTLM_PROLOG)) {
-                log.warn("NTLM token found.");
-                //todo handle ntlm token
-                response.sendRedirect(commonAuthURL);
-                return;
-            }
-            final byte[] gssToken = Base64.decode(token);
-            try {
-
-                name = AuthenticationHandlerUtil.processToken(gssToken);
-
-            } catch (GSSException e) {
-                log.warn("error logging in user.", e);
-                response.sendRedirect(commonAuthURL);
-                return;
-            }
-            if (name == null) {
-                log.warn("error logging in user.");
-                response.sendRedirect(commonAuthURL);
-                return;
-            }
-        } else {
-            if (log.isDebugEnabled()) {
-                log.debug("authorization required");
-            }
-            //Send unauthorized response to get token
-            sendUnauthorized(response, false);
-            return;
-        }
-        if (log.isDebugEnabled()) {
-            log.debug("logged in user: " + name);
-        }
         HttpSession session = request.getSession(true);
+
         if (session == null) {
             throw new ServletException("Expected HttpSession");
         }
-        session.setAttribute(IWAConstants.SUBJECT_ATTRIBUTE, name);
 
-        log.info("Successfully logged in user: " + name);
+        //check if request is local host
+        if (this.isLocalhost(request)) {
+            session.setAttribute(IWAConstants.USER_NAME, IWAAuthenticationUtil.doLocalhost());
+        } else if (header != null) {
+            // extract the token from the header
+            String token = header.substring(IWAConstants.NEGOTIATE_HEADER.length() + 1);
+            if (token.startsWith(IWAConstants.NTLM_PROLOG)) {
+                log.warn("NTLM token found.");
+                //todo handle ntlm token, if we are handling the NTLM token we need to reflect the change in IWA Local
+                // and Federated Authenticator
+                response.sendRedirect(commonAuthURL);
+                return;
+            }
+            // pass the gss token to the authenticator
+            session.setAttribute(IWAConstants.GSS_TOKEN, token);
+        } else {
+
+            if (log.isDebugEnabled()) {
+                log.debug("NTLM/GSS Token not found. Sending Unauthorized response.");
+            }
+            //Send unauthorized response to get gss/NTLM token
+            sendUnauthorized(response, false);
+            return;
+        }
 
         response.sendRedirect(commonAuthURL);
     }
@@ -141,7 +126,6 @@ public class IWAServelet extends HttpServlet {
      * @return true if HTTP request is from the same host (localhost)
      */
     private boolean isLocalhost(final HttpServletRequest req) {
-
         return req.getLocalAddr().equals(req.getRemoteAddr());
     }
 
@@ -150,8 +134,8 @@ public class IWAServelet extends HttpServlet {
 
         try {
             // set the kerberos config path
-            AuthenticationHandlerUtil.setKeberosConfigFilePath();
-            AuthenticationHandlerUtil.initialize();
+            IWAAuthenticationUtil.setKerberosConfigFilePath();
+            IWAAuthenticationUtil.initializeIWALocalAuthenticator();
         } catch (GSSException | LoginException | PrivilegedActionException e) {
             log.error("Error when creating gss credentials .", e);
             throw new ServletException("Error when creating gss credentials .");

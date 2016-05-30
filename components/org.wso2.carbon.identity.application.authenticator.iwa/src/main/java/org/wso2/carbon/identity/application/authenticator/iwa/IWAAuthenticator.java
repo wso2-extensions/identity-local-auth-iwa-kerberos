@@ -18,111 +18,95 @@
 
 package org.wso2.carbon.identity.application.authenticator.iwa;
 
+import org.apache.axiom.om.util.Base64;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.wso2.carbon.context.CarbonContext;
-import org.wso2.carbon.identity.application.authentication.framework.AbstractApplicationAuthenticator;
+import org.ietf.jgss.GSSException;
 import org.wso2.carbon.identity.application.authentication.framework.LocalApplicationAuthenticator;
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
-import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkUtils;
+import org.wso2.carbon.identity.application.authenticator.iwa.internal.IWAServiceDataHolder;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
+import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.core.UserStoreManager;
+import org.wso2.carbon.user.core.service.RealmService;
+import org.wso2.carbon.user.core.util.UserCoreUtil;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
-import java.io.IOException;
-import java.net.URLEncoder;
-import java.util.StringTokenizer;
 
 /**
  * Username Password based Authenticator
  */
-public class IWAAuthenticator extends AbstractApplicationAuthenticator implements
+public class IWAAuthenticator extends AbstractIWAAuthenticator implements
         LocalApplicationAuthenticator {
 
     public static final String AUTHENTICATOR_NAME = "IWAAuthenticator";
-    public static final String AUTHENTICATOR_FRIENDLY_NAME = "iwa";
+    public static final String AUTHENTICATOR_FRIENDLY_NAME = "iwa-local";
+
     //the following param of the request will be set once the request is processed by the IWAServlet
-    public static final String IWA_PROCESSED = "iwaauth";
-    private static final long serialVersionUID = -713445365200141399L;
+    private static final long serialVersionUID = -713445365110141399L;
     private static Log log = LogFactory.getLog(IWAAuthenticator.class);
 
-    @Override
-    public boolean canHandle(HttpServletRequest request) {
-        //check whether the OS is windows. IWA works only with windows
-        // todo no need of windows now no waffle
-   //     String osName = System.getProperty(IWAConstants.OS_NAME_PROPERTY);
-    //    return StringUtils.isNotEmpty(osName) && osName.toLowerCase().contains(IWAConstants.WINDOWS_OS_MATCH_STRING) &&
-     //           request.getParameter(IWA_PROCESSED) != null;
-        return request.getParameter(IWA_PROCESSED) != null;
-    }
-
-    @Override
-    protected void initiateAuthenticationRequest(HttpServletRequest request, HttpServletResponse response,
-                                                 AuthenticationContext context) throws AuthenticationFailedException {
-        sendToLoginPage(request, response, context.getContextIdentifier());
-    }
 
     @Override
     protected void processAuthenticationResponse(HttpServletRequest request, HttpServletResponse response,
                                                  AuthenticationContext context) throws AuthenticationFailedException {
+        super.processAuthenticationResponse(request, response, context);
 
         HttpSession session = request.getSession(false);
-        if (session.getAttribute(IWAConstants.SUBJECT_ATTRIBUTE) == null) {
-            if (log.isDebugEnabled()) {
-                log.debug("Subject attribute not set. Therefore authentication is failed.");
+        // get the authenticated username directly if the request is from localhost
+        String authenticatedUserName = (String) session.getAttribute(IWAConstants.USER_NAME);
+
+        if (IdentityUtil.isBlank(authenticatedUserName)) {
+            final String gssToken = (String) session.getAttribute(IWAConstants.GSS_TOKEN);
+
+            // get the authenticated username by processing the GSS Token
+            authenticatedUserName = getAuthenticatedUserFromToken(Base64.decode(gssToken));
+            if (IdentityUtil.isBlank(authenticatedUserName)) {
+                throw new AuthenticationFailedException("Authenticated user not found in GSS Token");
             }
-            throw new AuthenticationFailedException("Authentication Failed");
         }
-        String username = (String)session.getAttribute(IWAConstants.SUBJECT_ATTRIBUTE);
-        //todo if user name has a @
-        StringTokenizer stringTokenizer = new StringTokenizer(username, "@");
-        username = stringTokenizer.nextToken();
+
+        // remove the AD domain from the username
+        int index = authenticatedUserName.lastIndexOf("@");
+        authenticatedUserName = authenticatedUserName.substring(0, index);
 
         if (log.isDebugEnabled()) {
-            log.debug("Authenticate request received : AuthType - " + request.getAuthType() + ", User - " + username);
-        }
-        boolean isAuthenticated;
-        UserStoreManager userStoreManager;
-        // Check the authentication
-        try {
-            userStoreManager = (UserStoreManager) CarbonContext.getThreadLocalCarbonContext().getUserRealm()
-                    .getUserStoreManager();
-            isAuthenticated = userStoreManager.isExistingUser(MultitenantUtils.getTenantAwareUsername(username));
-        } catch (org.wso2.carbon.user.api.UserStoreException e) {
-            throw new AuthenticationFailedException("IWAAuthenticator failed while trying to find user existence", e);
+            log.debug("Authenticate request received : AuthType - " + request.getAuthType()
+                    + ", User - " + authenticatedUserName);
         }
 
-        if (!isAuthenticated) {
+        boolean isExistInPrimaryUserStore;
+        UserStoreManager userStoreManager;
+        String spTenantDomain = context.getTenantDomain();
+        try {
+            userStoreManager = getPrimaryUserStoreManager(spTenantDomain);
+            String userStoreDomain = IdentityUtil.getPrimaryDomainName();
+            authenticatedUserName = IdentityUtil.addDomainToName(authenticatedUserName, userStoreDomain);
+
+            // Check whether the authenticated user is in primary user store
+            isExistInPrimaryUserStore =
+                    userStoreManager.isExistingUser(MultitenantUtils.getTenantAwareUsername(authenticatedUserName));
+
+        } catch (org.wso2.carbon.user.api.UserStoreException e) {
+            throw new AuthenticationFailedException("IWAAuthenticator failed to find the user in the userstore", e);
+        }
+
+        if (!isExistInPrimaryUserStore) {
             if (log.isDebugEnabled()) {
-                log.debug("user authentication failed, user:" + username + " is not in the user store");
+                log.debug("user authentication failed, user '" + authenticatedUserName +
+                        "' is not found in user store of " + spTenantDomain + " tenant Domain");
             }
             throw new AuthenticationFailedException("Authentication Failed");
         }
-        username = FrameworkUtils.prependUserStoreDomainToName(username);
-        context.setSubject(AuthenticatedUser.createLocalAuthenticatedUserFromSubjectIdentifier(username));
-    }
 
-    public void sendToLoginPage(HttpServletRequest request, HttpServletResponse response, String ctx)
-            throws AuthenticationFailedException {
-        String iwaURL = null;
-        try {
-            iwaURL = IdentityUtil.getServerURL(IWAConstants.IWA_AUTH_EP, false, true) +
-                    "?" + IWAConstants.IWA_PARAM_STATE + "=" + URLEncoder.encode(ctx, IWAConstants.UTF_8);
-            response.sendRedirect(response.encodeRedirectURL(iwaURL));
-        } catch (IOException e) {
-            log.error("Error when sending to the login page :" + iwaURL, e);
-            throw new AuthenticationFailedException("Authentication failed");
-        }
-    }
-
-    @Override
-    public String getContextIdentifier(HttpServletRequest request) {
-        return request.getParameter(IWAConstants.IWA_PARAM_STATE);
+        String userNameWithTenantDomain = UserCoreUtil.addTenantDomainToEntry(authenticatedUserName, spTenantDomain);
+        context.setSubject(AuthenticatedUser.createLocalAuthenticatedUserFromSubjectIdentifier(userNameWithTenantDomain));
     }
 
     @Override
@@ -133,5 +117,30 @@ public class IWAAuthenticator extends AbstractApplicationAuthenticator implement
     @Override
     public String getName() {
         return AUTHENTICATOR_NAME;
+    }
+
+
+    /**
+     * Method to extract the authenticated user name from the gss token
+     *
+     * @param gssToken base64 decoded gss token
+     * @return true if token can be successfully processed using credentials
+     * @throws AuthenticationFailedException
+     */
+    private String getAuthenticatedUserFromToken(byte[] gssToken) throws AuthenticationFailedException {
+        try {
+            return IWAAuthenticationUtil.processToken(gssToken);
+        } catch (GSSException e) {
+            log.error("Error processing the GSS token.", e);
+            throw new AuthenticationFailedException("Error processing the GSS Token");
+        }
+    }
+
+
+    private UserStoreManager getPrimaryUserStoreManager(String tenantDomain) throws UserStoreException {
+        RealmService realmService = IWAServiceDataHolder.getRealmService();
+        int tenantId = realmService.getTenantManager().getTenantId(tenantDomain);
+
+        return (UserStoreManager) realmService.getTenantUserRealm(tenantId).getUserStoreManager();
     }
 }

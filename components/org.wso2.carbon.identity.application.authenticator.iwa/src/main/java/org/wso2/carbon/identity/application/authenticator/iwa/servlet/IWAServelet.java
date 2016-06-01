@@ -70,7 +70,7 @@ public class IWAServelet extends HttpServlet {
         }
 
         //check if request is local host
-        if (this.isLocalhost(request)) {
+        if (isLocalhost(request)) {
             session.setAttribute(IWAConstants.USER_NAME, IWAAuthenticationUtil.doLocalhost());
         } else if (header != null) {
             // extract the token from the header

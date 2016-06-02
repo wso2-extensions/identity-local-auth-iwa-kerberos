@@ -26,6 +26,7 @@ import org.ietf.jgss.GSSException;
 import org.ietf.jgss.GSSManager;
 import org.wso2.carbon.base.CarbonBaseConstants;
 import org.wso2.carbon.identity.application.authenticator.iwa.internal.IWAServiceDataHolder;
+import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.user.core.service.RealmService;
 
 import javax.security.auth.Subject;
@@ -116,16 +117,30 @@ public class IWAAuthenticationUtil {
     }
 
 
-    public static void setKerberosConfigFilePath() {
+    public static void setConfigFilePaths() {
         String kerberosFilePath = System.getProperty(IWAConstants.KERBEROS_CONFIG_FILE);
+        String jaasConfigPath = System.getProperty(IWAConstants.JAAS_CONFIG_FILE);
 
-        // set the "java.security.auth.krb5.conf" system property only if it is not set already
-        if (StringUtils.isEmpty(kerberosFilePath)) {
-            String carbonHome = System.getProperty(CarbonBaseConstants.CARBON_HOME);
+        String carbonHome = System.getProperty(CarbonBaseConstants.CARBON_HOME);
+
+        // set the krb5.conf file path if not set by the system property already
+        if (IdentityUtil.isBlank(kerberosFilePath)) {
             kerberosFilePath =
-                    Paths.get(carbonHome, "repository", "conf", "identity", IWAConstants.KERBEROS_CONF_FILE_NAME).toString();
-
+                    Paths.get(carbonHome, "repository", "conf", "identity", IWAConstants.KERBEROS_CONF_FILE_NAME)
+                            .toString();
             System.setProperty(IWAConstants.KERBEROS_CONFIG_FILE, kerberosFilePath);
+        }
+
+        // set jaas.conf file path if not set by the system property already
+        if (IdentityUtil.isBlank(jaasConfigPath)) {
+            jaasConfigPath = Paths.get(carbonHome, "repository", "conf", "identity", IWAConstants.JAAS_CONF_FILE_NAME)
+                    .toString();
+            System.setProperty(IWAConstants.JAAS_CONFIG_FILE, jaasConfigPath);
+        }
+
+        if (log.isDebugEnabled()) {
+            log.debug("Kerberos config file path set to "+ kerberosFilePath +
+                    "\nJAAS config file path set to " + jaasConfigPath);
         }
 
     }
@@ -157,14 +172,15 @@ public class IWAAuthenticationUtil {
      */
     //todo check logic of using system user insted of access user
     public static String doLocalhost() {
-//        final String username = System.getProperty(IWAConstants.USER_NAME);
-//
-//        if (null == username || username.isEmpty()) {
-//            return serverPrincipal.getName() + '@' + serverPrincipal.getRealm();
-//        } else {
-//            return username + '@' + serverPrincipal.getRealm();
-//        }
-        throw new UnsupportedOperationException("Log in from the same host as the AD is not supported yet.");
+        final String username = System.getProperty(IWAConstants.USER_NAME);
+
+        if (null == username || username.isEmpty()) {
+            return serverPrincipal.getName() + '@' + serverPrincipal.getRealm();
+        } else {
+            return username + '@' + serverPrincipal.getRealm();
+        }
+        // throw new UnsupportedOperationException("Log in from the same host as the AD is not supported yet.");
+        //return username;
     }
 
     /**

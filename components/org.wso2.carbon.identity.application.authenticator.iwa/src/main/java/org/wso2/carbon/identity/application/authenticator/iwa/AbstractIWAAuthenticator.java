@@ -46,11 +46,14 @@ public abstract class AbstractIWAAuthenticator extends AbstractApplicationAuthen
 
         HttpSession session = request.getSession(false);
 
-        if (session.getAttribute(IWAConstants.GSS_TOKEN) == null) {
-            if (log.isDebugEnabled()) {
-                log.debug("GSS Token not present.");
+        // first check username in the session
+        if (session.getAttribute(IWAConstants.USER_NAME) == null) {
+            if (session.getAttribute(IWAConstants.GSS_TOKEN) == null) {
+                if (log.isDebugEnabled()) {
+                    log.debug("GSS Token not present.");
+                }
+                throw new AuthenticationFailedException("Authentication Failed");
             }
-            throw new AuthenticationFailedException("Authentication Failed");
         }
 
     }

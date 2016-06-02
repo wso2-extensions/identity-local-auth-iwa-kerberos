@@ -45,7 +45,10 @@ public class IWAConstants {
 
     public static final String KERBEROS_SERVER = "kerberosServer";
     public static final String KERBEROS_CONFIG_FILE = "java.security.auth.krb5.conf";
+    public static final String JAAS_CONFIG_FILE = "java.security.auth.login.config";
+
     public static final String KERBEROS_CONF_FILE_NAME = "krb5.conf";
+    public static final String JAAS_CONF_FILE_NAME = "jaas.conf";
 
 
     private IWAConstants() {

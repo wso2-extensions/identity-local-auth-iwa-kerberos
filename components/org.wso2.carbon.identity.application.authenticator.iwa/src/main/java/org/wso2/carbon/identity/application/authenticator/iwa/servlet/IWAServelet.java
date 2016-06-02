@@ -18,7 +18,6 @@
 
 package org.wso2.carbon.identity.application.authenticator.iwa.servlet;
 
-import org.apache.axiom.om.util.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.ietf.jgss.GSSException;
@@ -134,7 +133,7 @@ public class IWAServelet extends HttpServlet {
 
         try {
             // set the kerberos config path
-            IWAAuthenticationUtil.setKerberosConfigFilePath();
+            IWAAuthenticationUtil.setConfigFilePaths();
             IWAAuthenticationUtil.initializeIWALocalAuthenticator();
         } catch (GSSException | LoginException | PrivilegedActionException e) {
             log.error("Error when creating gss credentials .", e);

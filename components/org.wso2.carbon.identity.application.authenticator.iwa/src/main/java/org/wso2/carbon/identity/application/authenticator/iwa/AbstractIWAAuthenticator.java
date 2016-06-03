@@ -34,10 +34,7 @@ import java.net.URLEncoder;
 
 public abstract class AbstractIWAAuthenticator extends AbstractApplicationAuthenticator {
 
-    //the following param of the request will be set once the request is processed by the IWAServlet
-    public static final String IWA_PROCESSED = "iwaauth";
     private static final long serialVersionUID = -713445365980141169L;
-
     private static Log log = LogFactory.getLog(AbstractIWAAuthenticator.class);
 
     @Override
@@ -46,21 +43,18 @@ public abstract class AbstractIWAAuthenticator extends AbstractApplicationAuthen
 
         HttpSession session = request.getSession(false);
 
-        // first check username in the session
-        if (session.getAttribute(IWAConstants.USER_NAME) == null) {
-            if (session.getAttribute(IWAConstants.GSS_TOKEN) == null) {
-                if (log.isDebugEnabled()) {
-                    log.debug("GSS Token not present.");
-                }
-                throw new AuthenticationFailedException("Authentication Failed");
+        if (session.getAttribute(IWAConstants.GSS_TOKEN) == null) {
+            if (log.isDebugEnabled()) {
+                log.debug("GSS Token not present.");
             }
+            throw new AuthenticationFailedException("Authentication Failed");
         }
 
     }
 
     @Override
     public boolean canHandle(HttpServletRequest request) {
-        return request.getParameter(IWA_PROCESSED) != null;
+        return request.getParameter(IWAConstants.IWA_PROCESSED) != null;
     }
 
     @Override

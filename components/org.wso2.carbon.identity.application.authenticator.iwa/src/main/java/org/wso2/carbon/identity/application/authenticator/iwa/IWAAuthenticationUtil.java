@@ -167,21 +167,6 @@ public class IWAAuthenticationUtil {
         return createCredentialsForSubject(loginContext.getSubject());
     }
 
-    /**
-     * Handle local host authentication request
-     */
-    //todo check logic of using system user insted of access user
-    public static String doLocalhost() {
-        final String username = System.getProperty(IWAConstants.USER_NAME);
-
-        if (null == username || username.isEmpty()) {
-            return serverPrincipal.getName() + '@' + serverPrincipal.getRealm();
-        } else {
-            return username + '@' + serverPrincipal.getRealm();
-        }
-        // throw new UnsupportedOperationException("Log in from the same host as the AD is not supported yet.");
-        //return username;
-    }
 
     /**
      * Create GSSCredential

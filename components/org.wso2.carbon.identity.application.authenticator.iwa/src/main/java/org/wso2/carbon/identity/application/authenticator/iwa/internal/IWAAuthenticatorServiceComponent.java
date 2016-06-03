@@ -24,7 +24,7 @@ import org.osgi.service.component.ComponentContext;
 import org.osgi.service.http.HttpService;
 import org.osgi.service.http.NamespaceException;
 import org.wso2.carbon.identity.application.authentication.framework.ApplicationAuthenticator;
-import org.wso2.carbon.identity.application.authenticator.iwa.IWAAuthenticator;
+import org.wso2.carbon.identity.application.authenticator.iwa.IWALocalAuthenticator;
 import org.wso2.carbon.identity.application.authenticator.iwa.IWAConstants;
 import org.wso2.carbon.identity.application.authenticator.iwa.IWAFederatedAuthenticator;
 import org.wso2.carbon.identity.application.authenticator.iwa.servlet.IWAServelet;
@@ -51,7 +51,7 @@ public class IWAAuthenticatorServiceComponent {
 
     protected void activate(ComponentContext ctxt) {
         try {
-            IWAAuthenticator iwaAuth = new IWAAuthenticator();
+            IWALocalAuthenticator iwaAuth = new IWALocalAuthenticator();
             IWAFederatedAuthenticator iwaFederatedAuthenticator = new IWAFederatedAuthenticator();
 
             // Register iwa servlet
@@ -62,18 +62,18 @@ public class IWAAuthenticatorServiceComponent {
             ctxt.getBundleContext().registerService(ApplicationAuthenticator.class.getName(),
                     iwaFederatedAuthenticator, null);
             if (log.isDebugEnabled()) {
-                log.debug("IWAAuthenticator bundle is activated");
+                log.debug("IWALocalAuthenticator bundle is activated");
             }
         } catch (NamespaceException | ServletException e) {
             log.error("Error when registering the IWA servlet, '" + IWAConstants.IWA_URL + "' may be already in use." + e);
         } catch (Throwable e) {
-            log.error("IWAAuthenticator bundle activation failed");
+            log.error("IWALocalAuthenticator bundle activation failed");
         }
     }
 
     protected void deactivate(ComponentContext ctxt) {
         if (log.isDebugEnabled()) {
-            log.debug("IWAAuthenticator bundle is deactivated");
+            log.debug("IWALocalAuthenticator bundle is deactivated");
         }
     }
 

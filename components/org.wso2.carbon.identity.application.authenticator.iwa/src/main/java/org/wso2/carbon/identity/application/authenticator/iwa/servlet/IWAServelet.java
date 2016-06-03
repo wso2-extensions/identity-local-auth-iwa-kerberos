@@ -22,7 +22,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.ietf.jgss.GSSException;
 import org.wso2.carbon.identity.application.authenticator.iwa.IWAAuthenticationUtil;
-import org.wso2.carbon.identity.application.authenticator.iwa.IWAAuthenticator;
+import org.wso2.carbon.identity.application.authenticator.iwa.IWALocalAuthenticator;
 import org.wso2.carbon.identity.application.authenticator.iwa.IWAConstants;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 
@@ -58,7 +58,7 @@ public class IWAServelet extends HttpServlet {
             throw new IllegalArgumentException(IWAConstants.IWA_PARAM_STATE + " parameter is null.");
         }
         commonAuthURL += "?" + IWAConstants.IWA_PARAM_STATE + "=" + URLEncoder.encode(param, IWAConstants.UTF_8) +
-                "&" + IWAAuthenticator.IWA_PROCESSED + "=1";
+                "&" + IWAConstants.IWA_PROCESSED + "=1";
 
         // extract authorization header
         String header = request.getHeader(IWAConstants.AUTHORIZATION_HEADER);
@@ -70,7 +70,7 @@ public class IWAServelet extends HttpServlet {
 
         //check if request is local host
         if (isLocalhost(request)) {
-            session.setAttribute(IWAConstants.USER_NAME, IWAAuthenticationUtil.doLocalhost());
+            throw new ServletException("Cannot handle IWA authentication from the same host as the KDC");
         } else if (header != null) {
             // extract the token from the header
             String token = header.substring(IWAConstants.NEGOTIATE_HEADER.length() + 1);

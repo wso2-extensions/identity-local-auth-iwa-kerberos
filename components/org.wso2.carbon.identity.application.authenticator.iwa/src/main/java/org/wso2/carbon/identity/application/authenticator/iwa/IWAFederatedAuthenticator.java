@@ -57,44 +57,39 @@ public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implemen
         super.processAuthenticationResponse(request, response, context);
 
         HttpSession session = request.getSession(false);
-        // get the authenticated username directly if the request is from localhost
-        String authenticatedUserName = (String) session.getAttribute(IWAConstants.USER_NAME);
 
-        if (IdentityUtil.isBlank(authenticatedUserName)) {
-            Map authenticatorProperties = context.getAuthenticatorProperties();
-            String kerberosServer = (String) authenticatorProperties.get(IWAConstants.KERBEROS_SERVER);
+        Map authenticatorProperties = context.getAuthenticatorProperties();
+        String kerberosServer = (String) authenticatorProperties.get(IWAConstants.KERBEROS_SERVER);
 
-            // get credentials for the kerberos server
-            GSSCredential gssCredential = IWAAuthenticationUtil.getCredentials(kerberosServer);
-
-            try {
-                // create server credentials for KDC
-                if (gssCredential == null) {
-                    if (log.isDebugEnabled()) {
-                        log.debug("Server credentials not available for " + kerberosServer);
-                    }
-                    String servicePrincipalName = (String) authenticatorProperties.get(IWAConstants.SPN_NAME);
-                    String servicePrincipalPassword = (String) authenticatorProperties.get(IWAConstants.SPN_PASSWORD);
-
-                    gssCredential = IWAAuthenticationUtil.createCredentials(kerberosServer, servicePrincipalName,
-                            servicePrincipalPassword);
-                    if (log.isDebugEnabled()) {
-                        log.debug("Created new server credentials for " + kerberosServer);
-                    }
+        // get credentials for the kerberos server
+        GSSCredential gssCredential = IWAAuthenticationUtil.getCredentials(kerberosServer);
+        try {
+            // create server credentials for KDC
+            if (gssCredential == null) {
+                if (log.isDebugEnabled()) {
+                    log.debug("Server credentials not available for " + kerberosServer);
                 }
+                String servicePrincipalName = (String) authenticatorProperties.get(IWAConstants.SPN_NAME);
+                String servicePrincipalPassword = (String) authenticatorProperties.get(IWAConstants.SPN_PASSWORD);
 
-            } catch (PrivilegedActionException | LoginException | GSSException ex) {
-                throw new AuthenticationFailedException("Cannot create kerberos credentials for server.", ex);
+                gssCredential = IWAAuthenticationUtil.createCredentials(kerberosServer, servicePrincipalName,
+                        servicePrincipalPassword);
+                if (log.isDebugEnabled()) {
+                    log.debug("Created new server credentials for " + kerberosServer);
+                }
             }
 
-            final String gssToken = (String) session.getAttribute(IWAConstants.GSS_TOKEN);
+        } catch (PrivilegedActionException | LoginException | GSSException ex) {
+            throw new AuthenticationFailedException("Cannot create kerberos credentials for server.", ex);
+        }
 
-            // get the authenticated username from the GSS Token
-            authenticatedUserName = getAuthenticatedUserFromToken(gssCredential, Base64.decode(gssToken));
+        final String gssToken = (String) session.getAttribute(IWAConstants.GSS_TOKEN);
 
-            if (StringUtils.isEmpty(authenticatedUserName)) {
-                throw new AuthenticationFailedException("Authenticated user not found in GSS Token");
-            }
+        // get the authenticated username from the GSS Token
+        String authenticatedUserName = getAuthenticatedUserFromToken(gssCredential, Base64.decode(gssToken));
+
+        if (StringUtils.isEmpty(authenticatedUserName)) {
+            throw new AuthenticationFailedException("Authenticated user not found in GSS Token");
         }
 
         if (log.isDebugEnabled()) {

@@ -19,7 +19,6 @@
 package org.wso2.carbon.identity.application.authenticator.iwa;
 
 import org.apache.axiom.om.util.Base64;
-import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.ietf.jgss.GSSException;
@@ -42,15 +41,15 @@ import javax.servlet.http.HttpSession;
 /**
  * Username Password based Authenticator
  */
-public class IWAAuthenticator extends AbstractIWAAuthenticator implements
+public class IWALocalAuthenticator extends AbstractIWAAuthenticator implements
         LocalApplicationAuthenticator {
 
-    public static final String AUTHENTICATOR_NAME = "IWAAuthenticator";
+    public static final String AUTHENTICATOR_NAME = "IWALocalAuthenticator";
     public static final String AUTHENTICATOR_FRIENDLY_NAME = "iwa-local";
 
     //the following param of the request will be set once the request is processed by the IWAServlet
     private static final long serialVersionUID = -713445365110141399L;
-    private static Log log = LogFactory.getLog(IWAAuthenticator.class);
+    private static Log log = LogFactory.getLog(IWALocalAuthenticator.class);
 
 
     @Override
@@ -94,7 +93,7 @@ public class IWAAuthenticator extends AbstractIWAAuthenticator implements
                     userStoreManager.isExistingUser(MultitenantUtils.getTenantAwareUsername(authenticatedUserName));
 
         } catch (org.wso2.carbon.user.api.UserStoreException e) {
-            throw new AuthenticationFailedException("IWAAuthenticator failed to find the user in the userstore", e);
+            throw new AuthenticationFailedException("IWALocalAuthenticator failed to find the user in the userstore", e);
         }
 
         if (!isExistInPrimaryUserStore) {

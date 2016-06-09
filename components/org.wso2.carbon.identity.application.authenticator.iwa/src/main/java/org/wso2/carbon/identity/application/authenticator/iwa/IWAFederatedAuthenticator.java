@@ -30,7 +30,6 @@ import org.wso2.carbon.identity.application.authentication.framework.context.Aut
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.application.common.model.Property;
-import org.wso2.carbon.identity.core.util.IdentityUtil;
 
 import javax.security.auth.login.LoginException;
 import javax.servlet.http.HttpServletRequest;
@@ -130,6 +129,7 @@ public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implemen
         SPNPassword.setDisplayName("Service Principal Password");
         SPNPassword.setRequired(true);
         SPNPassword.setDescription("Kerberos Service Principal Password");
+        SPNPassword.setConfidential(true);
         configProperties.add(SPNPassword);
 
         return configProperties;

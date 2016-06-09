@@ -103,7 +103,7 @@ public class IWAAuthenticationUtil {
         target = context.getTargName().toString();
 
         if (log.isDebugEnabled()) {
-            String msg = new StringBuilder("\nLogged in user : ").append(loggedInUserName).append("\n")
+            String msg = new StringBuilder("Logged in user : ").append(loggedInUserName).append("\n")
                     .append("Target Principal : ").append(target).append("\n").toString();
             log.debug(msg);
         }

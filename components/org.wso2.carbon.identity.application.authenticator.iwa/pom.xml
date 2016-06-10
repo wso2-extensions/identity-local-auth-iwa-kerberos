@@ -80,7 +80,7 @@
                         <Export-Package>
                             !org.wso2.carbon.identity.application.authenticator.iwa.internal,
                             org.wso2.carbon.identity.application.authenticator.iwa.*;
-                            version="${carbon.identity.iwa.package.export.version}"
+                            version="${carbon.identity.local.auth.iwa.package.export.version}"
                         </Export-Package>
                         <DynamicImport-Package>*</DynamicImport-Package>
                     </instructions>

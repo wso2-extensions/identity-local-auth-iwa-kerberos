@@ -122,7 +122,8 @@
     </modules>
 
     <properties>
-        <carbon.identity.iwa.package.export.version>5.2.0-SNAPSHOT</carbon.identity.iwa.package.export.version>
+        <carbon.identity.local.auth.iwa.version>5.2.0-SNAPSHOT</carbon.identity.local.auth.iwa.version>
+        <carbon.identity.local.auth.iwa.package.export.version>${carbon.identity.local.auth.iwa.version}</carbon.identity.local.auth.iwa.package.export.version>
     </properties>
 
 </project>

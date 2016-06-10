@@ -43,10 +43,6 @@
             <groupId>org.wso2.carbon.identity</groupId>
             <artifactId>org.wso2.carbon.identity.application.authentication.framework</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.wso2.orbit.com.github.dblock.waffle</groupId>
-            <artifactId>waffle-jna</artifactId>
-        </dependency>
     </dependencies>
 
     <build>
@@ -69,7 +65,6 @@
                                 <bundleDef>
                                     org.wso2.carbon.identity:org.wso2.carbon.identity.application.authenticator.iwa
                                 </bundleDef>
-                                <bundleDef>org.wso2.orbit.com.github.dblock.waffle:waffle-jna</bundleDef>
                             </bundles>
                             <importFeatures>
                                 <importFeatureDef>org.wso2.carbon.core:compatible:${carbon.kernel.version}</importFeatureDef>

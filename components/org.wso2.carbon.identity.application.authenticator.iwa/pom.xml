@@ -20,7 +20,7 @@
         <groupId>org.wso2.carbon.identity</groupId>
         <artifactId>identity-application-auth-iwa</artifactId>
         <relativePath>../../pom.xml</relativePath>
-        <version>5.1.1-SNAPSHOT</version>
+        <version>5.2.0-SNAPSHOT</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
@@ -31,10 +31,6 @@
         <dependency>
             <groupId>org.wso2.carbon.identity</groupId>
             <artifactId>org.wso2.carbon.identity.application.authentication.framework</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.wso2.orbit.com.github.dblock.waffle</groupId>
-            <artifactId>waffle-jna</artifactId>
         </dependency>
         <dependency>
             <groupId>org.wso2.carbon.identity</groupId>
@@ -80,17 +76,11 @@
 
                             org.wso2.carbon.identity.application.authentication.framework.*;
                             version="${carbon.identity.package.import.version.range}",
-
-                            waffle.servlet; version="${waffle.imp.pkg.version.range}",
-                            waffle.servlet.spi; version="${waffle.imp.pkg.version.range}",
-                            waffle.util; version="${waffle.imp.pkg.version.range}",
-                            waffle.windows.auth; version="${waffle.imp.pkg.version.range}",
-                            waffle.windows.auth.impl; version="${waffle.imp.pkg.version.range}"
                         </Import-Package>
                         <Export-Package>
                             !org.wso2.carbon.identity.application.authenticator.iwa.internal,
                             org.wso2.carbon.identity.application.authenticator.iwa.*;
-                            version="${carbon.identity.package.export.version}"
+                            version="${carbon.identity.local.auth.iwa.package.export.version}"
                         </Export-Package>
                         <DynamicImport-Package>*</DynamicImport-Package>
                     </instructions>

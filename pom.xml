@@ -26,7 +26,7 @@
 
     <modelVersion>4.0.0</modelVersion>
     <artifactId>identity-application-auth-iwa</artifactId>
-    <version>5.1.1-SNAPSHOT</version>
+    <version>5.2.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>WSO2 Carbon - IWA Identity Application Authenticator Module</name>
     <description>
@@ -40,16 +40,6 @@
         <connection>scm:git:https://github.com/wso2-extensions/identity-local-auth-iwa.git</connection>
         <tag>HEAD</tag>
     </scm>
-
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.wso2.orbit.com.github.dblock.waffle</groupId>
-                <artifactId>waffle-jna</artifactId>
-                <version>${waffle-jna.wso2.version}</version>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
 
     <repositories>
         <repository>
@@ -130,10 +120,10 @@
         <module>components/org.wso2.carbon.identity.authenticator.iwa.stub</module>
         <module>features/org.wso2.carbon.identity.application.authenticator.iwa.server.feature</module>
     </modules>
+
     <properties>
-        <waffle-jna.wso2.version>1.6.wso2v4</waffle-jna.wso2.version>
-        <waffle-jna.imp.pkg.version.range>[1.6.wso2v1, 2.0)</waffle-jna.imp.pkg.version.range>
-        <waffle.imp.pkg.version.range>[1.6.wso2v4, 2.0)</waffle.imp.pkg.version.range>
+        <carbon.identity.local.auth.iwa.version>5.2.0-SNAPSHOT</carbon.identity.local.auth.iwa.version>
+        <carbon.identity.local.auth.iwa.package.export.version>${carbon.identity.local.auth.iwa.version}</carbon.identity.local.auth.iwa.package.export.version>
     </properties>
 
 </project>

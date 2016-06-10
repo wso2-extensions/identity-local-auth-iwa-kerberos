@@ -121,6 +121,9 @@
         <module>features/org.wso2.carbon.identity.application.authenticator.iwa.server.feature</module>
     </modules>
 
+    <properties>
+        <carbon.identity.iwa.package.export.version>5.2.0-SNAPSHOT</carbon.identity.iwa.package.export.version>
+    </properties>
 
 </project>
 

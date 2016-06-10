@@ -41,6 +41,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * IWAFederatedAuthenticator authenticates a user from a Kerberos Token (GSS Token) sent by a pre-registered KDC.
+ */
 public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implements FederatedApplicationAuthenticator {
 
     public static final String AUTHENTICATOR_NAME = "IWAFederatedAuthenticator";
@@ -52,27 +55,37 @@ public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implemen
     private static ConcurrentHashMap<String, GSSCredential> gssCredentialMap = new ConcurrentHashMap<>();
 
     @Override
-    protected void processAuthenticationResponse(HttpServletRequest request, HttpServletResponse response, AuthenticationContext context) throws AuthenticationFailedException {
+    protected void processAuthenticationResponse(HttpServletRequest request, HttpServletResponse response,
+                                                 AuthenticationContext context) throws AuthenticationFailedException {
         super.processAuthenticationResponse(request, response, context);
-
         HttpSession session = request.getSession(false);
 
         Map authenticatorProperties = context.getAuthenticatorProperties();
-        String kerberosServer = (String) authenticatorProperties.get(IWAConstants.KERBEROS_SERVER);
 
-        // get credentials for the kerberos server
-        GSSCredential gssCredential = IWAAuthenticationUtil.getCredentials(kerberosServer);
+        GSSCredential gssCredential;
         try {
-            // create server credentials for KDC
+            String kerberosServer = (String) authenticatorProperties.get(IWAConstants.KERBEROS_SERVER);
+            String servicePrincipalName = (String) authenticatorProperties.get(IWAConstants.SPN_NAME);
+            String servicePrincipalPassword = (String) authenticatorProperties.get(IWAConstants.SPN_PASSWORD);
+
+            if (StringUtils.isBlank(kerberosServer) || StringUtils.isBlank(servicePrincipalName) ||
+                    StringUtils.isBlank(servicePrincipalPassword)) {
+                throw new AuthenticationFailedException
+                        ("Kerberos Server/Service Principal Name/Service Principal Password cannot " +
+                                "be empty to create credentials for KDC : " + kerberosServer);
+            }
+
+            // get credentials for the kerberos server
+            gssCredential = IWAAuthenticationUtil.getCredentials(kerberosServer);
+            // create new server credentials for KDC since they don't exist
             if (gssCredential == null) {
                 if (log.isDebugEnabled()) {
-                    log.debug("Server credentials not available for " + kerberosServer);
+                    log.debug("Server credentials not available for KDC : " + kerberosServer);
                 }
-                String servicePrincipalName = (String) authenticatorProperties.get(IWAConstants.SPN_NAME);
-                String servicePrincipalPassword = (String) authenticatorProperties.get(IWAConstants.SPN_PASSWORD);
 
                 gssCredential = IWAAuthenticationUtil.createCredentials(kerberosServer, servicePrincipalName,
                         servicePrincipalPassword);
+
                 if (log.isDebugEnabled()) {
                     log.debug("Created new server credentials for " + kerberosServer);
                 }
@@ -86,13 +99,12 @@ public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implemen
 
         // get the authenticated username from the GSS Token
         String authenticatedUserName = getAuthenticatedUserFromToken(gssCredential, Base64.decode(gssToken));
-
         if (StringUtils.isEmpty(authenticatedUserName)) {
             throw new AuthenticationFailedException("Authenticated user not found in GSS Token");
-        }
-
-        if (log.isDebugEnabled()) {
-            log.debug("Authenticated user extracted : " + authenticatedUserName);
+        } else {
+            if (log.isDebugEnabled()) {
+                log.debug("Authenticated user extracted from kerberos ticket : " + authenticatedUserName);
+            }
         }
 
         // remove the AD domain from the username
@@ -100,7 +112,7 @@ public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implemen
         authenticatedUserName = authenticatedUserName.substring(0, index);
 
         if (log.isDebugEnabled()) {
-            log.debug("Federated user Authenticated : " + authenticatedUserName);
+            log.debug("Authenticated Federated User : " + authenticatedUserName);
         }
 
         context.setSubject(AuthenticatedUser.createFederateAuthenticatedUserFromSubjectIdentifier(authenticatedUserName));
@@ -150,8 +162,7 @@ public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implemen
         try {
             return IWAAuthenticationUtil.processToken(gssCredentials, gssToken);
         } catch (GSSException e) {
-            log.error("Error processing the GSS token.", e);
-            throw new AuthenticationFailedException("Error processing the GSS Token");
+            throw new AuthenticationFailedException("Error processing the GSS Token", e);
         }
     }
 }

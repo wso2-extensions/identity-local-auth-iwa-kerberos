@@ -18,11 +18,11 @@
 
 package org.wso2.carbon.identity.application.authenticator.iwa.servlet;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.ietf.jgss.GSSException;
 import org.wso2.carbon.identity.application.authenticator.iwa.IWAAuthenticationUtil;
-import org.wso2.carbon.identity.application.authenticator.iwa.IWALocalAuthenticator;
 import org.wso2.carbon.identity.application.authenticator.iwa.IWAConstants;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 
@@ -63,14 +63,15 @@ public class IWAServelet extends HttpServlet {
         // extract authorization header
         String header = request.getHeader(IWAConstants.AUTHORIZATION_HEADER);
         HttpSession session = request.getSession(true);
-
         if (session == null) {
             throw new ServletException("Expected HttpSession");
         }
 
-        //check if request is local host
+        //check if authentication request from the same host as the Identity Server
         if (isLocalhost(request)) {
-            throw new ServletException("Cannot handle IWA authentication from the same host as the KDC");
+            // we cannot handle this since the Identity Server and Kerberos Server are running on the same host
+            // A kerberos server cannot issue a token to authenticate itself
+            throw new ServletException("Cannot handle IWA authentication request from the same host as the KDC");
         } else if (header != null) {
             // extract the token from the header
             String token = header.substring(IWAConstants.NEGOTIATE_HEADER.length() + 1);
@@ -84,9 +85,9 @@ public class IWAServelet extends HttpServlet {
             // pass the gss token to the authenticator
             session.setAttribute(IWAConstants.GSS_TOKEN, token);
         } else {
-
             if (log.isDebugEnabled()) {
-                log.debug("NTLM/GSS Token not found. Sending Unauthorized response.");
+                log.debug("No Authorization Header found in the request for IWA Authentication. " +
+                        "Sending Unauthorized response.");
             }
             //Send unauthorized response to get gss/NTLM token
             sendUnauthorized(response, false);
@@ -114,7 +115,8 @@ public class IWAServelet extends HttpServlet {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.flushBuffer();
         } catch (IOException e) {
-            log.error("Error when sending unauthorized response.", e);
+            log.error("Error when sending Unauthorized Response for IWA Authentication request without " +
+                    "an Authorization Header.", e);
         }
     }
 
@@ -125,19 +127,17 @@ public class IWAServelet extends HttpServlet {
      * @return true if HTTP request is from the same host (localhost)
      */
     private boolean isLocalhost(final HttpServletRequest req) {
-        return req.getLocalAddr().equals(req.getRemoteAddr());
+        return StringUtils.equals(req.getLocalAddr(), (req.getRemoteAddr()));
     }
 
     @Override
     public void init(ServletConfig config) throws ServletException {
-
         try {
             // set the kerberos config path
             IWAAuthenticationUtil.setConfigFilePaths();
             IWAAuthenticationUtil.initializeIWALocalAuthenticator();
         } catch (GSSException | LoginException | PrivilegedActionException e) {
-            log.error("Error when creating gss credentials .", e);
-            throw new ServletException("Error when creating gss credentials .");
+            throw new ServletException("Error when creating gss credentials.", e);
         }
     }
 }

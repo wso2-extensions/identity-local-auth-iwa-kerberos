@@ -31,7 +31,9 @@ import javax.servlet.http.HttpSession;
 import java.io.IOException;
 import java.net.URLEncoder;
 
-
+/**
+ * Abstract Class to handle common functionality of IWALocalAuthenticator and IWAFederatedAuthenticator
+ */
 public abstract class AbstractIWAAuthenticator extends AbstractApplicationAuthenticator {
 
     private static final long serialVersionUID = -713445365980141169L;
@@ -42,12 +44,8 @@ public abstract class AbstractIWAAuthenticator extends AbstractApplicationAuthen
                                                  AuthenticationContext context) throws AuthenticationFailedException {
 
         HttpSession session = request.getSession(false);
-
         if (session.getAttribute(IWAConstants.GSS_TOKEN) == null) {
-            if (log.isDebugEnabled()) {
-                log.debug("GSS Token not present.");
-            }
-            throw new AuthenticationFailedException("Authentication Failed");
+            throw new AuthenticationFailedException("GSS token not present in the http session");
         }
 
     }
@@ -67,17 +65,26 @@ public abstract class AbstractIWAAuthenticator extends AbstractApplicationAuthen
         return request.getParameter(IWAConstants.IWA_PARAM_STATE);
     }
 
-
+    /**
+     * Redirect to the IWA servlet with the authentication context information
+     *
+     * @param request
+     * @param response
+     * @param ctx      Authentication context identifier
+     * @throws AuthenticationFailedException
+     */
     public void sendToLoginPage(HttpServletRequest request, HttpServletResponse response, String ctx)
             throws AuthenticationFailedException {
         String iwaURL = null;
         try {
+
             iwaURL = IdentityUtil.getServerURL(IWAConstants.IWA_AUTH_EP, false, true) +
                     "?" + IWAConstants.IWA_PARAM_STATE + "=" + URLEncoder.encode(ctx, IWAConstants.UTF_8);
             response.sendRedirect(response.encodeRedirectURL(iwaURL));
+
         } catch (IOException e) {
-            log.error("Error when sending to the login page :" + iwaURL, e);
-            throw new AuthenticationFailedException("Authentication failed");
+            String msg = "Error when redirecting to the login page : " + iwaURL;
+            throw new AuthenticationFailedException(msg, e);
         }
     }
 }

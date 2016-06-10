@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -39,7 +39,9 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
 /**
- * Username Password based Authenticator
+ * IWALocalAuthenticator authenticates a user from a Kerberos Token (GSS Token) sent by a pre-registered KDC
+ * (ie. the active directory). Currently we only authenticate users from the Primary user store of the super tenant
+ * with this authenticator
  */
 public class IWALocalAuthenticator extends AbstractIWAAuthenticator implements
         LocalApplicationAuthenticator {
@@ -58,27 +60,29 @@ public class IWALocalAuthenticator extends AbstractIWAAuthenticator implements
         super.processAuthenticationResponse(request, response, context);
 
         HttpSession session = request.getSession(false);
-        // get the authenticated username directly if the request is from localhost
-        String authenticatedUserName = (String) session.getAttribute(IWAConstants.USER_NAME);
+        final String gssToken = (String) session.getAttribute(IWAConstants.GSS_TOKEN);
+
+        // get the authenticated username by processing the GSS Token
+        String authenticatedUserName = null;
+        try {
+            authenticatedUserName = getAuthenticatedUserFromToken(Base64.decode(gssToken));
+        } catch (GSSException e) {
+            throw new AuthenticationFailedException("Error extracting username from the GSS Token.", e);
+        }
 
         if (IdentityUtil.isBlank(authenticatedUserName)) {
-            final String gssToken = (String) session.getAttribute(IWAConstants.GSS_TOKEN);
-
-            // get the authenticated username by processing the GSS Token
-            authenticatedUserName = getAuthenticatedUserFromToken(Base64.decode(gssToken));
-
-            if (IdentityUtil.isBlank(authenticatedUserName)) {
-                throw new AuthenticationFailedException("Authenticated user not found in GSS Token");
+            throw new AuthenticationFailedException("Authenticated user not found in GSS Token : "
+                    + authenticatedUserName);
+        } else {
+            if (log.isDebugEnabled()) {
+                log.debug("Authenticated user from GSS Token : " + authenticatedUserName);
             }
+
         }
 
         // remove the AD domain from the username
         int index = authenticatedUserName.lastIndexOf("@");
         authenticatedUserName = authenticatedUserName.substring(0, index);
-
-        if (log.isDebugEnabled()) {
-            log.debug("Authenticated user : " + authenticatedUserName);
-        }
 
         boolean isExistInPrimaryUserStore;
         UserStoreManager userStoreManager;
@@ -88,7 +92,8 @@ public class IWALocalAuthenticator extends AbstractIWAAuthenticator implements
             String userStoreDomain = IdentityUtil.getPrimaryDomainName();
             authenticatedUserName = IdentityUtil.addDomainToName(authenticatedUserName, userStoreDomain);
 
-            // Check whether the authenticated user is in primary user store
+            // Check whether the authenticated user is in primary user store. This is a limitation and will be improved
+            // to support ADs mounted as secondary userstores
             isExistInPrimaryUserStore =
                     userStoreManager.isExistingUser(MultitenantUtils.getTenantAwareUsername(authenticatedUserName));
 
@@ -97,11 +102,14 @@ public class IWALocalAuthenticator extends AbstractIWAAuthenticator implements
         }
 
         if (!isExistInPrimaryUserStore) {
-            log.error("User " + authenticatedUserName + "not found in the user store of tenant " + spTenantDomain);
-            throw new AuthenticationFailedException("Authentication Failed");
+            String msg = "User " + authenticatedUserName + "not found in the user store of tenant " + spTenantDomain;
+            throw new AuthenticationFailedException("Authentication Failed, " + msg);
         }
 
         String userNameWithTenantDomain = UserCoreUtil.addTenantDomainToEntry(authenticatedUserName, spTenantDomain);
+        if (log.isDebugEnabled()) {
+            log.debug("Authenticated Local User : " + userNameWithTenantDomain);
+        }
         context.setSubject(AuthenticatedUser.createLocalAuthenticatedUserFromSubjectIdentifier(userNameWithTenantDomain));
     }
 
@@ -121,15 +129,10 @@ public class IWALocalAuthenticator extends AbstractIWAAuthenticator implements
      *
      * @param gssToken base64 decoded gss token
      * @return true if token can be successfully processed using credentials
-     * @throws AuthenticationFailedException
+     * @throws GSSException
      */
-    private String getAuthenticatedUserFromToken(byte[] gssToken) throws AuthenticationFailedException {
-        try {
-            return IWAAuthenticationUtil.processToken(gssToken);
-        } catch (GSSException e) {
-            log.error("Error processing the GSS token.", e);
-            throw new AuthenticationFailedException("Error processing the GSS Token");
-        }
+    private String getAuthenticatedUserFromToken(byte[] gssToken) throws GSSException {
+        return IWAAuthenticationUtil.processToken(gssToken);
     }
 
 

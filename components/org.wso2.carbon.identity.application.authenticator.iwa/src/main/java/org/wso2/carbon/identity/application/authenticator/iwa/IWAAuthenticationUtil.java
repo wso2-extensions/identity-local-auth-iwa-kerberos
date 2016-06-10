@@ -38,9 +38,11 @@ import javax.security.auth.kerberos.KerberosPrincipal;
 import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
 import java.nio.file.Paths;
+import java.security.Principal;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 
@@ -55,14 +57,12 @@ public class IWAAuthenticationUtil {
     private static transient GSSCredential localIWACredentials;
     private static transient KerberosPrincipal serverPrincipal;
 
-    // Map to hold IWA federated authenticator credentials
+    // Shared Map to hold IWA GSS credentials for respective Kerberos servers
     private static Map<String, GSSCredential> gssCredentialMap = new ConcurrentHashMap<>();
-
     private static Log log = LogFactory.getLog(IWAAuthenticationUtil.class);
 
 
     public static void initializeIWALocalAuthenticator() throws GSSException, PrivilegedActionException, LoginException {
-
         RealmService realmService = IWAServiceDataHolder.getRealmService();
 
         String servicePrincipalName =
@@ -70,12 +70,9 @@ public class IWAAuthenticationUtil {
         String servicePrincipalPassword =
                 realmService.getBootstrapRealmConfiguration().getUserStoreProperty(IWAConstants.SPN_PASSWORD);
 
-
         if (StringUtils.isNotEmpty(servicePrincipalName) && StringUtils.isNotEmpty(servicePrincipalPassword)) {
-
             CallbackHandler callbackHandler = getUsernamePasswordHandler(servicePrincipalName, servicePrincipalPassword);
-
-            // create credentials for Server
+            // create kerberos server credentials for IS
             localIWACredentials = createServerCredentials(callbackHandler);
             serverPrincipal = new KerberosPrincipal(localIWACredentials.getName().toString());
         }
@@ -90,11 +87,13 @@ public class IWAAuthenticationUtil {
      */
     public static String processToken(GSSCredential gssCredentials, byte[] gssToken) throws GSSException {
         GSSContext context = gssManager.createContext(gssCredentials);
+        // decrypt the kerberos ticket (GSS token)
         context.acceptSecContext(gssToken, 0, gssToken.length);
 
         String loggedInUserName;
         String target;
 
+        // if we cannot decrypt the GSS Token we return the username as null
         if (!context.isEstablished()) {
             return null;
         }
@@ -103,8 +102,8 @@ public class IWAAuthenticationUtil {
         target = context.getTargName().toString();
 
         if (log.isDebugEnabled()) {
-            String msg = new StringBuilder("Logged in user : ").append(loggedInUserName).append("\n")
-                    .append("Target Principal : ").append(target).append("\n").toString();
+            String msg = "Extracted details from GSS Token, LoggedIn User : " + loggedInUserName
+                    + " Intended target : " + target;
             log.debug(msg);
         }
 
@@ -112,11 +111,21 @@ public class IWAAuthenticationUtil {
     }
 
 
+    /**
+     * Process gss token with local IWA credentials
+     *
+     * @param gssToken kerberos token
+     * @return username of the logged in user
+     * @throws GSSException
+     */
     public static String processToken(byte[] gssToken) throws GSSException {
         return processToken(localIWACredentials, gssToken);
     }
 
 
+    /**
+     * Set jaas.conf and krb5 paths
+     */
     public static void setConfigFilePaths() {
         String kerberosFilePath = System.getProperty(IWAConstants.KERBEROS_CONFIG_FILE);
         String jaasConfigPath = System.getProperty(IWAConstants.JAAS_CONFIG_FILE);
@@ -139,8 +148,8 @@ public class IWAAuthenticationUtil {
         }
 
         if (log.isDebugEnabled()) {
-            log.debug("Kerberos config file path set to "+ kerberosFilePath +
-                    "\nJAAS config file path set to " + jaasConfigPath);
+            log.debug("Kerberos config file path set : " + kerberosFilePath + " ,JAAS config file path set : "
+                    + jaasConfigPath);
         }
 
     }
@@ -154,22 +163,20 @@ public class IWAAuthenticationUtil {
      */
     private static GSSCredential createServerCredentials(CallbackHandler callbackHandler)
             throws PrivilegedActionException, LoginException {
-
         // authenticate to the AD (Kerberos Server)
         LoginContext loginContext = new LoginContext(IWAConstants.SERVER, callbackHandler);
         loginContext.login();
 
         if (log.isDebugEnabled()) {
-            log.debug("Pre-authentication successful for server ");
+            log.debug("Pre-authentication successful for with Kerberos Server.");
         }
-
         // create server credentials from pre authentication with the AD
         return createCredentialsForSubject(loginContext.getSubject());
     }
 
 
     /**
-     * Create GSSCredential
+     * Create GSSCredential as Subject
      *
      * @param subject login context subject
      * @return GSSCredential
@@ -187,6 +194,15 @@ public class IWAAuthenticationUtil {
                         );
                     }
                 };
+
+        if (log.isDebugEnabled()) {
+            Set<Principal> principals = subject.getPrincipals();
+            String principalName = null;
+            if (principals != null) {
+                principalName = principals.toString();
+            }
+            log.debug("Creating gss credentials as principal : " + principalName);
+        }
         return Subject.doAs(subject, action);
     }
 
@@ -202,14 +218,15 @@ public class IWAAuthenticationUtil {
         final CallbackHandler handler = new CallbackHandler() {
             public void handle(final Callback[] callback) {
                 for (int i = 0; i < callback.length; i++) {
-                    if (callback[i] instanceof NameCallback) {
-                        final NameCallback nameCallback = (NameCallback) callback[i];
+                    Callback currentCallBack = callback[i];
+                    if (currentCallBack instanceof NameCallback) {
+                        final NameCallback nameCallback = (NameCallback) currentCallBack;
                         nameCallback.setName(username);
-                    } else if (callback[i] instanceof PasswordCallback) {
-                        final PasswordCallback passCallback = (PasswordCallback) callback[i];
+                    } else if (currentCallBack instanceof PasswordCallback) {
+                        final PasswordCallback passCallback = (PasswordCallback) currentCallBack;
                         passCallback.setPassword(password.toCharArray());
                     } else {
-                        log.error("Unsupported Callback i = " + i + "; class = " + callback[i].getClass().getName());
+                        log.error("Unsupported Callback i = " + i + "; class = " + currentCallBack.getClass().getName());
                     }
                 }
             }
@@ -248,8 +265,7 @@ public class IWAAuthenticationUtil {
         GSSCredential gssCredential = createServerCredentials(callbackHandler);
 
         // add the created credentials to the map
-        gssCredentialMap.put(kdcServer, gssCredential);
-
+        gssCredentialMap.put(kdcServer.toLowerCase(), gssCredential);
         return gssCredential;
     }
 

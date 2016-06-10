@@ -41,6 +41,16 @@
         <tag>HEAD</tag>
     </scm>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.wso2.orbit.com.github.dblock.waffle</groupId>
+                <artifactId>waffle-jna</artifactId>
+                <version>${waffle-jna.wso2.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <repositories>
         <repository>
             <id>wso2-nexus</id>
@@ -120,7 +130,11 @@
         <module>components/org.wso2.carbon.identity.authenticator.iwa.stub</module>
         <module>features/org.wso2.carbon.identity.application.authenticator.iwa.server.feature</module>
     </modules>
-
+    <properties>
+        <waffle-jna.wso2.version>1.6.wso2v4</waffle-jna.wso2.version>
+        <waffle-jna.imp.pkg.version.range>[1.6.wso2v1, 2.0)</waffle-jna.imp.pkg.version.range>
+        <waffle.imp.pkg.version.range>[1.6.wso2v4, 2.0)</waffle.imp.pkg.version.range>
+    </properties>
 
 </project>
 

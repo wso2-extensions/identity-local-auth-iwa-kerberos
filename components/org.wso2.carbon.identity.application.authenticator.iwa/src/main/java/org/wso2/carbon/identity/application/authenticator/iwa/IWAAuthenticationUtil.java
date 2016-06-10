@@ -186,12 +186,8 @@ public class IWAAuthenticationUtil {
         final PrivilegedExceptionAction<GSSCredential> action =
                 new PrivilegedExceptionAction<GSSCredential>() {
                     public GSSCredential run() throws GSSException {
-                        return gssManager.createCredential(
-                                null
-                                , GSSCredential.INDEFINITE_LIFETIME
-                                , IWAServiceDataHolder.getSpnegoOid()
-                                , GSSCredential.ACCEPT_ONLY
-                        );
+                        return gssManager.createCredential(null, GSSCredential.INDEFINITE_LIFETIME,
+                                IWAServiceDataHolder.getSpnegoOid(), GSSCredential.ACCEPT_ONLY);
                     }
                 };
 

@@ -27,7 +27,7 @@ import org.wso2.carbon.identity.application.authentication.framework.Application
 import org.wso2.carbon.identity.application.authenticator.iwa.IWALocalAuthenticator;
 import org.wso2.carbon.identity.application.authenticator.iwa.IWAConstants;
 import org.wso2.carbon.identity.application.authenticator.iwa.IWAFederatedAuthenticator;
-import org.wso2.carbon.identity.application.authenticator.iwa.servlet.IWAServelet;
+import org.wso2.carbon.identity.application.authenticator.iwa.servlet.IWAServlet;
 import org.wso2.carbon.user.core.service.RealmService;
 
 import javax.servlet.Servlet;
@@ -47,18 +47,21 @@ import javax.servlet.ServletException;
 public class IWAAuthenticatorServiceComponent {
 
     private static Log log = LogFactory.getLog(IWAAuthenticatorServiceComponent.class);
-    private static HttpService httpService;
+    private IWAServiceDataHolder dataHolder = IWAServiceDataHolder.getInstance();
 
     protected void activate(ComponentContext ctxt) {
         try {
-            IWALocalAuthenticator iwaAuth = new IWALocalAuthenticator();
+            IWALocalAuthenticator iwaLocalAuthenticator = new IWALocalAuthenticator();
             IWAFederatedAuthenticator iwaFederatedAuthenticator = new IWAFederatedAuthenticator();
 
             // Register iwa servlet
-            Servlet iwaServlet = new ContextPathServletAdaptor(new IWAServelet(), IWAConstants.IWA_URL);
+            Servlet iwaServlet = new ContextPathServletAdaptor(new IWAServlet(), IWAConstants.IWA_URL);
+
+            HttpService httpService = dataHolder.getHttpService();
             httpService.registerServlet(IWAConstants.IWA_URL, iwaServlet, null, null);
 
-            ctxt.getBundleContext().registerService(ApplicationAuthenticator.class.getName(), iwaAuth, null);
+            ctxt.getBundleContext().registerService(ApplicationAuthenticator.class.getName(),
+                    iwaLocalAuthenticator, null);
             ctxt.getBundleContext().registerService(ApplicationAuthenticator.class.getName(),
                     iwaFederatedAuthenticator, null);
             if (log.isDebugEnabled()) {
@@ -81,27 +84,27 @@ public class IWAAuthenticatorServiceComponent {
         if (log.isDebugEnabled()) {
             log.debug("HTTP Service is set in the IWA SSO bundle");
         }
-        IWAAuthenticatorServiceComponent.httpService = httpService;
+        dataHolder.setHttpService(httpService);
     }
 
     protected void unsetHttpService(HttpService httpService) {
         if (log.isDebugEnabled()) {
             log.debug("HTTP Service is unset in the IWA SSO bundle");
         }
-        IWAAuthenticatorServiceComponent.httpService = null;
+        dataHolder.setHttpService(null);
     }
 
     protected void setRealmService(RealmService realmService) {
         if (log.isDebugEnabled()) {
             log.debug("Setting the Realm Service");
         }
-        IWAServiceDataHolder.setRealmService(realmService);
+        dataHolder.setRealmService(realmService);
     }
 
     protected void unsetRealmService(RealmService realmService) {
         if (log.isDebugEnabled()) {
             log.debug("Unsetting the Realm Service");
         }
-        IWAServiceDataHolder.setRealmService(null);
+        dataHolder.setRealmService(null);
     }
 }

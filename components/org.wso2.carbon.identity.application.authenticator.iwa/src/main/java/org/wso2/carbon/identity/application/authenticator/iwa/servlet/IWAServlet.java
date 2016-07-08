@@ -26,6 +26,9 @@ import org.wso2.carbon.identity.application.authenticator.iwa.IWAAuthenticationU
 import org.wso2.carbon.identity.application.authenticator.iwa.IWAConstants;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.security.PrivilegedActionException;
 import javax.security.auth.login.LoginException;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
@@ -33,16 +36,13 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
-import java.io.IOException;
-import java.net.URLEncoder;
-import java.security.PrivilegedActionException;
 
 /**
  * This class handles the IWA login requests. The implementation is based on the Spnego Authentication.
  */
-public class IWAServelet extends HttpServlet {
+public class IWAServlet extends HttpServlet {
 
-    private static Log log = LogFactory.getLog(IWAServelet.class);
+    private static Log log = LogFactory.getLog(IWAServlet.class);
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
@@ -62,10 +62,6 @@ public class IWAServelet extends HttpServlet {
 
         // extract authorization header
         String header = request.getHeader(IWAConstants.AUTHORIZATION_HEADER);
-        HttpSession session = request.getSession(true);
-        if (session == null) {
-            throw new ServletException("Expected HttpSession");
-        }
 
         //check if authentication request from the same host as the Identity Server
         if (isLocalhost(request)) {
@@ -73,17 +69,25 @@ public class IWAServelet extends HttpServlet {
             // A kerberos server cannot issue a token to authenticate itself
             throw new ServletException("Cannot handle IWA authentication request from the same host as the KDC");
         } else if (header != null) {
-            // extract the token from the header
-            String token = header.substring(IWAConstants.NEGOTIATE_HEADER.length() + 1);
-            if (token.startsWith(IWAConstants.NTLM_PROLOG)) {
-                log.warn("NTLM token found.");
-                //todo handle ntlm token, if we are handling the NTLM token we need to reflect the change in IWA Local
-                // and Federated Authenticator
-                response.sendRedirect(commonAuthURL);
-                return;
+            HttpSession session = request.getSession(true);
+            if (session == null) {
+                throw new ServletException("Expected HttpSession");
             }
-            // pass the gss token to the authenticator
-            session.setAttribute(IWAConstants.GSS_TOKEN, token);
+
+            if (!header.startsWith(IWAConstants.NEGOTIATE_HEADER)) {
+                log.error(IWAConstants.NEGOTIATE_HEADER + " header not found");
+            } else {
+                // extract the token from the header
+                String token = header.substring(IWAConstants.NEGOTIATE_HEADER.length()).trim();
+                if (token.startsWith(IWAConstants.NTLM_PROLOG)) {
+                    log.warn("NTLM token found.");
+                    // TODO handle NTLM token
+                    response.sendRedirect(commonAuthURL);
+                    return;
+                }
+                // pass the kerberos token to the authenticator
+                session.setAttribute(IWAConstants.KERBEROS_TOKEN, token);
+            }
         } else {
             if (log.isDebugEnabled()) {
                 log.debug("No Authorization Header found in the request for IWA Authentication. " +
@@ -105,11 +109,10 @@ public class IWAServelet extends HttpServlet {
      */
     private void sendUnauthorized(HttpServletResponse response, boolean close) {
         try {
+            response.setHeader(IWAConstants.AUTHENTICATE_HEADER, IWAConstants.NEGOTIATE_HEADER);
             if (close) {
-                response.setHeader(IWAConstants.AUTHENTICATE_HEADER, IWAConstants.NEGOTIATE_HEADER);
                 response.addHeader(IWAConstants.HTTP_CONNECTION_HEADER, IWAConstants.CONNECTION_CLOSE);
             } else {
-                response.setHeader(IWAConstants.AUTHENTICATE_HEADER, IWAConstants.NEGOTIATE_HEADER);
                 response.addHeader(IWAConstants.HTTP_CONNECTION_HEADER, IWAConstants.CONNECTION_KEEP_ALIVE);
             }
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);

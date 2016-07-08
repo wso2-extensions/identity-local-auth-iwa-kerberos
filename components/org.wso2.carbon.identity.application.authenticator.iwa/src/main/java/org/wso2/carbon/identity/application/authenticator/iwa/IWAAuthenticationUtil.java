@@ -29,6 +29,13 @@ import org.wso2.carbon.identity.application.authenticator.iwa.internal.IWAServic
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.user.core.service.RealmService;
 
+import java.nio.file.Paths;
+import java.security.Principal;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import javax.security.auth.Subject;
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.CallbackHandler;
@@ -37,13 +44,6 @@ import javax.security.auth.callback.PasswordCallback;
 import javax.security.auth.kerberos.KerberosPrincipal;
 import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
-import java.nio.file.Paths;
-import java.security.Principal;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
@@ -52,18 +52,19 @@ import java.util.concurrent.ConcurrentHashMap;
 public class IWAAuthenticationUtil {
 
     private static GSSManager gssManager = GSSManager.getInstance();
+    private static IWAServiceDataHolder dataHolder = IWAServiceDataHolder.getInstance();
 
     // holds the local IWA Authenticator credentials
     private static transient GSSCredential localIWACredentials;
     private static transient KerberosPrincipal serverPrincipal;
 
     // Shared Map to hold IWA GSS credentials for respective Kerberos servers
-    private static Map<String, GSSCredential> gssCredentialMap = new ConcurrentHashMap<>();
+    private static transient Map<String, GSSCredential> gssCredentialMap = new ConcurrentHashMap<>();
     private static Log log = LogFactory.getLog(IWAAuthenticationUtil.class);
 
 
     public static void initializeIWALocalAuthenticator() throws GSSException, PrivilegedActionException, LoginException {
-        RealmService realmService = IWAServiceDataHolder.getRealmService();
+        RealmService realmService = dataHolder.getRealmService();
 
         String servicePrincipalName =
                 realmService.getBootstrapRealmConfiguration().getUserStoreProperty(IWAConstants.SPN_NAME);
@@ -85,7 +86,7 @@ public class IWAAuthenticationUtil {
      * @return username Username of the logged in user
      * @throws GSSException
      */
-    public static String processToken(GSSCredential gssCredentials, byte[] gssToken) throws GSSException {
+    public static String processToken(byte[] gssToken, GSSCredential gssCredentials) throws GSSException {
         GSSContext context = gssManager.createContext(gssCredentials);
         // decrypt the kerberos ticket (GSS token)
         context.acceptSecContext(gssToken, 0, gssToken.length);
@@ -95,6 +96,7 @@ public class IWAAuthenticationUtil {
 
         // if we cannot decrypt the GSS Token we return the username as null
         if (!context.isEstablished()) {
+            log.error("Unable to decrypt the kerberos ticket as context was not established.");
             return null;
         }
 
@@ -103,7 +105,7 @@ public class IWAAuthenticationUtil {
 
         if (log.isDebugEnabled()) {
             String msg = "Extracted details from GSS Token, LoggedIn User : " + loggedInUserName
-                    + " Intended target : " + target;
+                    + " , Intended target : " + target;
             log.debug(msg);
         }
 
@@ -119,7 +121,7 @@ public class IWAAuthenticationUtil {
      * @throws GSSException
      */
     public static String processToken(byte[] gssToken) throws GSSException {
-        return processToken(localIWACredentials, gssToken);
+        return processToken(gssToken, localIWACredentials);
     }
 
 
@@ -187,7 +189,7 @@ public class IWAAuthenticationUtil {
                 new PrivilegedExceptionAction<GSSCredential>() {
                     public GSSCredential run() throws GSSException {
                         return gssManager.createCredential(null, GSSCredential.INDEFINITE_LIFETIME,
-                                IWAServiceDataHolder.getSpnegoOid(), GSSCredential.ACCEPT_ONLY);
+                                dataHolder.getSpnegoOid(), GSSCredential.ACCEPT_ONLY);
                     }
                 };
 

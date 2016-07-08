@@ -21,14 +21,26 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.ietf.jgss.GSSException;
 import org.ietf.jgss.Oid;
+import org.osgi.service.http.HttpService;
 import org.wso2.carbon.identity.application.authenticator.iwa.IWAConstants;
 import org.wso2.carbon.user.core.service.RealmService;
 
 public class IWAServiceDataHolder {
 
-    private static final Oid SPNEGO_OID = IWAServiceDataHolder.createOid();
-    private static RealmService realmService;
+    private final Oid SPNEGO_OID = IWAServiceDataHolder.createOid();
+    private HttpService httpService;
+    private RealmService realmService;
     private static Log log = LogFactory.getLog(IWAServiceDataHolder.class);
+
+    private static IWAServiceDataHolder instance = new IWAServiceDataHolder();
+
+
+    private IWAServiceDataHolder() {
+    }
+
+    public static IWAServiceDataHolder getInstance() {
+        return instance;
+    }
 
     /**
      * Create mech OID for GSS token
@@ -46,15 +58,29 @@ public class IWAServiceDataHolder {
         return oid;
     }
 
-    public static Oid getSpnegoOid() {
+    public Oid getSpnegoOid() {
         return SPNEGO_OID;
     }
 
-    public static void setRealmService(RealmService realmService) {
-        IWAServiceDataHolder.realmService = realmService;
+    public void setRealmService(RealmService realmService) {
+        this.realmService = realmService;
     }
 
-    public static RealmService getRealmService() {
+    public RealmService getRealmService() {
+        if (realmService == null) {
+            throw new RuntimeException("Realm Service cannot be null. Component has not initialized properly.");
+        }
         return realmService;
+    }
+
+    public HttpService getHttpService() {
+        if (httpService == null) {
+            throw new RuntimeException("HTTP Service cannot be null. Component has not initialized properly.");
+        }
+        return httpService;
+    }
+
+    public void setHttpService(HttpService httpService) {
+        this.httpService = httpService;
     }
 }

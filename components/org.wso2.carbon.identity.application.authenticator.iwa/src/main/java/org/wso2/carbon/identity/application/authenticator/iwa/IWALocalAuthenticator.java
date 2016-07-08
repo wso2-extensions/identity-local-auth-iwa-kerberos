@@ -60,29 +60,23 @@ public class IWALocalAuthenticator extends AbstractIWAAuthenticator implements
         super.processAuthenticationResponse(request, response, context);
 
         HttpSession session = request.getSession(false);
-        final String gssToken = (String) session.getAttribute(IWAConstants.GSS_TOKEN);
+        String gssToken = (String) session.getAttribute(IWAConstants.KERBEROS_TOKEN);
+        invalidateSession(request);
 
         // get the authenticated username by processing the GSS Token
-        String authenticatedUserName = null;
+        String fullyQualifiedName;
         try {
-            authenticatedUserName = getAuthenticatedUserFromToken(Base64.decode(gssToken));
+            fullyQualifiedName = getAuthenticatedUserFromToken(Base64.decode(gssToken));
         } catch (GSSException e) {
             throw new AuthenticationFailedException("Error extracting username from the GSS Token.", e);
         }
 
-        if (IdentityUtil.isBlank(authenticatedUserName)) {
+        if (IdentityUtil.isBlank(fullyQualifiedName)) {
             throw new AuthenticationFailedException("Authenticated user not found in GSS Token : "
-                    + authenticatedUserName);
-        } else {
-            if (log.isDebugEnabled()) {
-                log.debug("Authenticated user from GSS Token : " + authenticatedUserName);
-            }
-
+                    + fullyQualifiedName);
         }
 
-        // remove the AD domain from the username
-        int index = authenticatedUserName.lastIndexOf("@");
-        authenticatedUserName = authenticatedUserName.substring(0, index);
+        String authenticatedUserName = getDomainAwareUserName(fullyQualifiedName);
 
         boolean isExistInPrimaryUserStore;
         UserStoreManager userStoreManager;
@@ -93,7 +87,7 @@ public class IWALocalAuthenticator extends AbstractIWAAuthenticator implements
             authenticatedUserName = IdentityUtil.addDomainToName(authenticatedUserName, userStoreDomain);
 
             // Check whether the authenticated user is in primary user store. This is a limitation and will be improved
-            // to support ADs mounted as secondary userstores
+            // to support ADs mounted as secondary user stores
             isExistInPrimaryUserStore =
                     userStoreManager.isExistingUser(MultitenantUtils.getTenantAwareUsername(authenticatedUserName));
 
@@ -137,7 +131,7 @@ public class IWALocalAuthenticator extends AbstractIWAAuthenticator implements
 
 
     private UserStoreManager getPrimaryUserStoreManager(String tenantDomain) throws UserStoreException {
-        RealmService realmService = IWAServiceDataHolder.getRealmService();
+        RealmService realmService = IWAServiceDataHolder.getInstance().getRealmService();
         int tenantId = realmService.getTenantManager().getTenantId(tenantDomain);
 
         return (UserStoreManager) realmService.getTenantUserRealm(tenantId).getUserStoreManager();

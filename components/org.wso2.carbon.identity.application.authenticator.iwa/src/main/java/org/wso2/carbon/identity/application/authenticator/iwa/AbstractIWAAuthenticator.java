@@ -18,6 +18,7 @@
 
 package org.wso2.carbon.identity.application.authenticator.iwa;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.identity.application.authentication.framework.AbstractApplicationAuthenticator;
@@ -25,11 +26,11 @@ import org.wso2.carbon.identity.application.authentication.framework.context.Aut
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 
+import java.io.IOException;
+import java.net.URLEncoder;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
-import java.io.IOException;
-import java.net.URLEncoder;
 
 /**
  * Abstract Class to handle common functionality of IWALocalAuthenticator and IWAFederatedAuthenticator
@@ -44,10 +45,9 @@ public abstract class AbstractIWAAuthenticator extends AbstractApplicationAuthen
                                                  AuthenticationContext context) throws AuthenticationFailedException {
 
         HttpSession session = request.getSession(false);
-        if (session.getAttribute(IWAConstants.GSS_TOKEN) == null) {
+        if (session.getAttribute(IWAConstants.KERBEROS_TOKEN) == null) {
             throw new AuthenticationFailedException("GSS token not present in the http session");
         }
-
     }
 
     @Override
@@ -73,7 +73,7 @@ public abstract class AbstractIWAAuthenticator extends AbstractApplicationAuthen
      * @param ctx      Authentication context identifier
      * @throws AuthenticationFailedException
      */
-    public void sendToLoginPage(HttpServletRequest request, HttpServletResponse response, String ctx)
+    private void sendToLoginPage(HttpServletRequest request, HttpServletResponse response, String ctx)
             throws AuthenticationFailedException {
         String iwaURL = null;
         try {
@@ -86,5 +86,28 @@ public abstract class AbstractIWAAuthenticator extends AbstractApplicationAuthen
             String msg = "Error when redirecting to the login page : " + iwaURL;
             throw new AuthenticationFailedException(msg, e);
         }
+    }
+
+    protected void invalidateSession(HttpServletRequest request) {
+        if (request.isRequestedSessionIdValid()) {
+            // invalidate the session. ie. clear all attributes
+            request.getSession().invalidate();
+            // create a new session thereby creating a new jSessionID
+            request.getSession(true);
+        }
+    }
+
+
+    protected String getDomainAwareUserName(String fullyQualifiedUserName) throws AuthenticationFailedException {
+        if (StringUtils.isEmpty(fullyQualifiedUserName)) {
+            throw new AuthenticationFailedException("Authenticated user not found in GSS Token");
+        }
+
+        if (log.isDebugEnabled()) {
+            log.debug("Authenticated user(FQDN) extracted from kerberos ticket : " + fullyQualifiedUserName);
+        }
+        // remove the AD domain from the username
+        int index = fullyQualifiedUserName.lastIndexOf("@");
+        return fullyQualifiedUserName.substring(0, index);
     }
 }

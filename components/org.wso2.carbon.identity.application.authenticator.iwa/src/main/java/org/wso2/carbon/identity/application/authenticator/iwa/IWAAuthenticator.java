@@ -33,12 +33,12 @@ import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.user.core.UserStoreManager;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.security.Principal;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 
 /**
  * Username Password based Authenticator
@@ -75,8 +75,8 @@ public class IWAAuthenticator extends AbstractApplicationAuthenticator implement
         if (principal == null) {
             HttpSession session = request.getSession(false);
             if (session != null) {
-                principal = (Principal) session
-                        .getAttribute(IWAServelet.PRINCIPAL_SESSION_KEY);
+                principal = (Principal) session.getAttribute(IWAServelet.PRINCIPAL_SESSION_KEY);
+                invalidateSession(request);
             }
         }
 
@@ -119,7 +119,7 @@ public class IWAAuthenticator extends AbstractApplicationAuthenticator implement
         String iwaURL = null;
         try {
             iwaURL = IdentityUtil.getServerURL(IWAConstants.IWA_AUTH_EP, false, true) +
-                    "?" + IWAConstants.IWA_PARAM_STATE + "=" +URLEncoder.encode(ctx, IWAConstants.UTF_8);
+                    "?" + IWAConstants.IWA_PARAM_STATE + "=" + URLEncoder.encode(ctx, IWAConstants.UTF_8);
             response.sendRedirect(response.encodeRedirectURL(iwaURL));
         } catch (IOException e) {
             log.error("Error when sending to the login page :" + iwaURL, e);
@@ -140,5 +140,13 @@ public class IWAAuthenticator extends AbstractApplicationAuthenticator implement
     @Override
     public String getName() {
         return AUTHENTICATOR_NAME;
+    }
+
+    private void invalidateSession(HttpServletRequest request) {
+        if (request.isRequestedSessionIdValid()) {
+            request.getSession().invalidate();             // invalidate the session. ie. clear all attributes
+            request.getSession(true);            // create a new session thereby creating a new jSessionID
+        }
+
     }
 }

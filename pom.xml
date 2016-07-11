@@ -236,7 +236,7 @@
     <properties>
         <!--Carbon Identity Framework Version-->
         <carbon.identity.framework.version>5.2.0</carbon.identity.framework.version>
-        <carbon.identity.package.import.version.range>[5.0.0, 6.0.0)</carbon.identity.package.import.version.range>
+        <carbon.identity.framework.import.version.range>[5.0.0, 6.0.0)</carbon.identity.framework.import.version.range>
 
         <!-- Carbon Identity Local Authenticator IWA version -->
         <identity.local.auth.iwa.export.version>${project.version}</identity.local.auth.iwa.export.version>

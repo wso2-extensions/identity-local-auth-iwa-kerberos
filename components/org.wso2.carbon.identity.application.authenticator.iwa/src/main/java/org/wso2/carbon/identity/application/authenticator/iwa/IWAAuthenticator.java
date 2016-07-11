@@ -28,7 +28,7 @@ import org.wso2.carbon.identity.application.authentication.framework.context.Aut
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkUtils;
-import org.wso2.carbon.identity.application.authenticator.iwa.servlet.IWAServelet;
+import org.wso2.carbon.identity.application.authenticator.iwa.servlet.IWAServlet;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.user.core.UserStoreManager;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
@@ -75,7 +75,7 @@ public class IWAAuthenticator extends AbstractApplicationAuthenticator implement
         if (principal == null) {
             HttpSession session = request.getSession(false);
             if (session != null) {
-                principal = (Principal) session.getAttribute(IWAServelet.PRINCIPAL_SESSION_KEY);
+                principal = (Principal) session.getAttribute(IWAServlet.PRINCIPAL_SESSION_KEY);
                 invalidateSession(request);
             }
         }

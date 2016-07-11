@@ -76,12 +76,12 @@
                             org.wso2.carbon.utils.multitenancy; version="${carbon.kernel.package.import.version.range}",
 
                             org.wso2.carbon.identity.application.authentication.framework.*;
-                            version="${carbon.identity.package.import.version.range}",
+                            version="${carbon.identity.framework.import.version.range}",
                         </Import-Package>
                         <Export-Package>
                             !org.wso2.carbon.identity.application.authenticator.iwa.internal,
                             org.wso2.carbon.identity.application.authenticator.iwa.*;
-                            version="${carbon.identity.local.auth.iwa.package.export.version}"
+                            version="${identity.local.auth.iwa.export.version}"
                         </Export-Package>
                         <DynamicImport-Package>*</DynamicImport-Package>
                     </instructions>

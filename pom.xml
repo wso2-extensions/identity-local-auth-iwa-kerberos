@@ -182,9 +182,25 @@
                         </instructions>
                     </configuration>
                 </plugin>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>buildnumber-maven-plugin</artifactId>
+                    <version>${maven.buildnumber.plugin.version}</version>
+                    <executions>
+                        <execution>
+                            <phase>validate</phase>
+                            <goals>
+                                <goal>create</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                    <configuration>
+                        <doCheck>false</doCheck>
+                        <doUpdate>false</doUpdate>
+                    </configuration>
+                </plugin>
             </plugins>
         </pluginManagement>
-
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -218,13 +234,15 @@
 
 
     <properties>
+        <!--Carbon Identity Framework Version-->
+        <carbon.identity.framework.version>5.2.0</carbon.identity.framework.version>
+        <carbon.identity.framework.import.version.range>[5.0.0, 6.0.0)</carbon.identity.framework.import.version.range>
+
         <!-- Carbon Identity Local Authenticator IWA version -->
-        <carbon.identity.local.auth.iwa.version>5.2.0-SNAPSHOT</carbon.identity.local.auth.iwa.version>
-        <carbon.identity.local.auth.iwa.package.export.version>${carbon.identity.local.auth.iwa.version}
-        </carbon.identity.local.auth.iwa.package.export.version>
+        <identity.local.auth.iwa.export.version>${project.version}</identity.local.auth.iwa.export.version>
 
         <!--Carbon Kernel Version-->
-        <carbon.kernel.version>4.4.5</carbon.kernel.version>
+        <carbon.kernel.version>4.4.7</carbon.kernel.version>
         <carbon.kernel.package.import.version.range>[4.4.0, 5.0.0)</carbon.kernel.package.import.version.range>
         <carbon.kernel.registry.imp.pkg.version>[1.0.1, 2.0.0)</carbon.kernel.registry.imp.pkg.version>
 
@@ -251,12 +269,6 @@
 
         <!-- Carbon Components versions -->
         <carbon.user.api.imp.pkg.version.range>[1.0.1, 2.0.0)</carbon.user.api.imp.pkg.version.range>
-
-        <!--Carbon Identity Framework Version-->
-        <carbon.identity.framework.version>5.5.0-SNAPSHOT</carbon.identity.framework.version>
-        <carbon.identity.package.export.version>${carbon.identity.framework.version}
-        </carbon.identity.package.export.version>
-        <carbon.identity.package.import.version.range>[5.0.0, 6.0.0)</carbon.identity.package.import.version.range>
 
         <project.scm.id>my-scm-server</project.scm.id>
     </properties>

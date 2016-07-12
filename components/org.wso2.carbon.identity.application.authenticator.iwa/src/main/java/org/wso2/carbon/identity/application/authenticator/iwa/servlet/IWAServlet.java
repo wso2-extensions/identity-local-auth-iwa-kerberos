@@ -53,11 +53,11 @@ import java.util.Map;
 /**
  * This class handles the IWA login requests. The implementation is based on the NegotiateSecurityFilter class.
  */
-public class IWAServelet extends HttpServlet {
+public class IWAServlet extends HttpServlet {
 
     public static final String PRINCIPAL_SESSION_KEY = NegotiateSecurityFilter.class
             .getName() + ".PRINCIPAL";
-    private static Log log = LogFactory.getLog(IWAServelet.class);
+    private static Log log = LogFactory.getLog(IWAServlet.class);
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {

@@ -26,7 +26,7 @@ import org.osgi.service.http.NamespaceException;
 import org.wso2.carbon.identity.application.authentication.framework.ApplicationAuthenticator;
 import org.wso2.carbon.identity.application.authenticator.iwa.IWAAuthenticator;
 import org.wso2.carbon.identity.application.authenticator.iwa.IWAConstants;
-import org.wso2.carbon.identity.application.authenticator.iwa.servlet.IWAServelet;
+import org.wso2.carbon.identity.application.authenticator.iwa.servlet.IWAServlet;
 
 import javax.servlet.Servlet;
 import javax.servlet.ServletException;
@@ -47,7 +47,7 @@ public class IWAAuthenticatorServiceComponent {
         try {
             IWAAuthenticator iwaAuth = new IWAAuthenticator();
             // Register iwa servlet
-            Servlet iwaServlet = new ContextPathServletAdaptor(new IWAServelet(), IWAConstants.IWA_URL);
+            Servlet iwaServlet = new ContextPathServletAdaptor(new IWAServlet(), IWAConstants.IWA_URL);
             httpService.registerServlet(IWAConstants.IWA_URL, iwaServlet, null, null);
             ctxt.getBundleContext().registerService(ApplicationAuthenticator.class.getName(), iwaAuth, null);
             if (log.isDebugEnabled()) {

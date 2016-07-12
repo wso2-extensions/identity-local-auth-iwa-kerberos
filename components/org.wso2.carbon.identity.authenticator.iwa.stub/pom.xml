@@ -22,7 +22,7 @@
         <groupId>org.wso2.carbon.identity</groupId>
         <artifactId>identity-application-auth-iwa</artifactId>
         <relativePath>../../pom.xml</relativePath>
-        <version>5.1.2-SNAPSHOT</version>
+        <version>5.1.1-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>org.wso2.carbon.identity.authenticator.iwa.stub</artifactId>
@@ -86,8 +86,7 @@
                         <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
                         <Bundle-Name>${project.artifactId}</Bundle-Name>
                         <Export-Package>
-                            org.wso2.carbon.identity.authenticator.iwa.stub.*;
-                            version="${identity.local.auth.iwa.export.version}"
+                            org.wso2.carbon.identity.authenticator.iwa.stub.*;version="${identity.local.auth.iwa.export.version}"
                         </Export-Package>
                     </instructions>
                 </configuration>

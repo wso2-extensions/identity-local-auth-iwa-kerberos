@@ -78,7 +78,7 @@
                             org.wso2.carbon.user.core; version="${carbon.kernel.package.import.version.range}",
                             org.wso2.carbon.utils.multitenancy; version="${carbon.kernel.package.import.version.range}",
 
-                            org.wso2.carbon.identity.application.authentication.framework.*; version="${carbon.identity.framework.import.version.range}"
+                            org.wso2.carbon.identity.application.authentication.framework.*; version="${carbon.identity.framework.import.version.range}",
 
                             waffle.servlet; version="${waffle.imp.pkg.version.range}",
                             waffle.servlet.spi; version="${waffle.imp.pkg.version.range}",

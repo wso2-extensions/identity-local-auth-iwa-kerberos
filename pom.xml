@@ -26,7 +26,7 @@
 
     <groupId>org.wso2.carbon.identity</groupId>
     <artifactId>identity-application-auth-iwa</artifactId>
-    <version>5.1.1-SNAPSHOT</version>
+    <version>5.1.1</version>
     <modelVersion>4.0.0</modelVersion>
     <packaging>pom</packaging>
     <name>WSO2 Carbon - IWA Identity Application Authenticator Module</name>
@@ -40,7 +40,7 @@
         <developerConnection>scm:git:https://github.com/wso2-extensions/identity-local-auth-iwa.git
         </developerConnection>
         <connection>scm:git:https://github.com/wso2-extensions/identity-local-auth-iwa.git</connection>
-        <tag>HEAD</tag>
+        <tag>v5.1.1</tag>
     </scm>
 
     <modules>

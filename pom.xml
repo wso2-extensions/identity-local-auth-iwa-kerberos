@@ -219,9 +219,8 @@
 
     <properties>
         <!-- Carbon Identity Local Authenticator IWA version -->
-        <carbon.identity.local.auth.iwa.version>5.2.0-SNAPSHOT</carbon.identity.local.auth.iwa.version>
-        <carbon.identity.local.auth.iwa.package.export.version>${carbon.identity.local.auth.iwa.version}
-        </carbon.identity.local.auth.iwa.package.export.version>
+        <carbon.identity.local.auth.iwa.version>${project.version}</carbon.identity.local.auth.iwa.version>
+        <carbon.identity.local.auth.iwa.package.export.version>${carbon.identity.local.auth.iwa.version}</carbon.identity.local.auth.iwa.package.export.version>
 
         <!--Carbon Kernel Version-->
         <carbon.kernel.version>4.4.5</carbon.kernel.version>

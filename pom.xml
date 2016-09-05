@@ -45,7 +45,7 @@
 
     <modules>
         <module>components/org.wso2.carbon.identity.application.authenticator.iwa</module>
-        <module>components/org.wso2.carbon.identity.authenticator.iwa.stub</module>
+        <!--<module>components/org.wso2.carbon.identity.authenticator.iwa.stub</module>-->
         <module>features/org.wso2.carbon.identity.application.authenticator.iwa.server.feature</module>
     </modules>
 

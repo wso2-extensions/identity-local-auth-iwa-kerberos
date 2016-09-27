@@ -61,36 +61,29 @@ public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implemen
 
         HttpSession session = request.getSession(false);
         final String gssToken = (String) session.getAttribute(IWAConstants.KERBEROS_TOKEN);
-        invalidateSession(request);
+        IWAAuthenticationUtil.invalidateSession(request);
 
         Map authenticatorProperties = context.getAuthenticatorProperties();
         GSSCredential gssCredential;
         try {
-            String kerberosServer = (String) authenticatorProperties.get(IWAConstants.KERBEROS_SERVER);
+            // URL of the Kerberos Server that issues the token the user will authenticate with.
+            String kdcServer = (String) authenticatorProperties.get(IWAConstants.KERBEROS_SERVER);
+
+            // Service Principal Name : an identifier representing IS registered at the Kerberos Server, this can
+            // sometimes be the service account of the IS at the Kerberos Server
             String spnName = (String) authenticatorProperties.get(IWAConstants.SPN_NAME);
+
+            // Password of the service account of IS at the Kerberos Server
             String spnPassword = (String) authenticatorProperties.get(IWAConstants.SPN_PASSWORD);
 
-            if (StringUtils.isBlank(kerberosServer) || StringUtils.isBlank(spnName) ||
-                    StringUtils.isBlank(spnPassword)) {
+            if (StringUtils.isBlank(kdcServer) || StringUtils.isBlank(spnName) || StringUtils.isBlank(spnPassword)) {
                 throw new AuthenticationFailedException
                         ("Kerberos Server/Service Principal Name/Service Principal Password cannot " +
-                                "be empty to create credentials for KDC : " + kerberosServer);
+                                "be empty to create credentials for KDC : " + kdcServer);
             }
 
-            // get credentials for the kerberos server
-            gssCredential = IWAAuthenticationUtil.getCredentials(kerberosServer);
-            // create new server credentials for KDC since they don't exist
-            if (gssCredential == null) {
-                if (log.isDebugEnabled()) {
-                    log.debug("Server credentials not available for KDC : " + kerberosServer);
-                }
-
-                gssCredential = IWAAuthenticationUtil.createCredentials(kerberosServer, spnName, spnPassword);
-
-                if (log.isDebugEnabled()) {
-                    log.debug("Created new server credentials for " + kerberosServer);
-                }
-            }
+            // create credentials to decrypt the Kerberos Token used to authenticate the user
+            gssCredential = IWAAuthenticationUtil.createCredentials(spnName, spnPassword.toCharArray());
 
         } catch (PrivilegedActionException | LoginException | GSSException ex) {
             throw new AuthenticationFailedException("Cannot create kerberos credentials for server.", ex);
@@ -98,7 +91,7 @@ public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implemen
 
         // get the authenticated username from the GSS Token
         String fullyQualifiedName = getAuthenticatedUserFromToken(gssCredential, Base64.decode(gssToken));
-        String authenticatedUserName = getDomainAwareUserName(fullyQualifiedName);
+        String authenticatedUserName = IWAAuthenticationUtil.getDomainAwareUserName(fullyQualifiedName);
         if (log.isDebugEnabled()) {
             log.debug("Authenticated Federated User : " + authenticatedUserName);
         }

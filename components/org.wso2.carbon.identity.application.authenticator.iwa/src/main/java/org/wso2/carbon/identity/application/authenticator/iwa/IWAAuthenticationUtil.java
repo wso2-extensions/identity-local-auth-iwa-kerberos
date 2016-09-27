@@ -44,6 +44,7 @@ import javax.security.auth.callback.PasswordCallback;
 import javax.security.auth.kerberos.KerberosPrincipal;
 import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
+import javax.servlet.http.HttpServletRequest;
 
 
 /**
@@ -58,21 +59,21 @@ public class IWAAuthenticationUtil {
     private static transient GSSCredential localIWACredentials;
     private static transient KerberosPrincipal serverPrincipal;
 
-    // Shared Map to hold IWA GSS credentials for respective Kerberos servers
-    private static transient Map<String, GSSCredential> gssCredentialMap = new ConcurrentHashMap<>();
     private static Log log = LogFactory.getLog(IWAAuthenticationUtil.class);
 
 
     public static void initializeIWALocalAuthenticator() throws GSSException, PrivilegedActionException, LoginException {
         RealmService realmService = dataHolder.getRealmService();
 
+        // TODO : read this config from a file in registry
         String servicePrincipalName =
                 realmService.getBootstrapRealmConfiguration().getUserStoreProperty(IWAConstants.SPN_NAME);
         String servicePrincipalPassword =
                 realmService.getBootstrapRealmConfiguration().getUserStoreProperty(IWAConstants.SPN_PASSWORD);
 
         if (StringUtils.isNotEmpty(servicePrincipalName) && StringUtils.isNotEmpty(servicePrincipalPassword)) {
-            CallbackHandler callbackHandler = getUsernamePasswordHandler(servicePrincipalName, servicePrincipalPassword);
+            CallbackHandler callbackHandler = getUsernamePasswordHandler(servicePrincipalName,
+                    servicePrincipalPassword.toCharArray());
             // create kerberos server credentials for IS
             localIWACredentials = createServerCredentials(callbackHandler);
             serverPrincipal = new KerberosPrincipal(localIWACredentials.getName().toString());
@@ -121,6 +122,7 @@ public class IWAAuthenticationUtil {
      * @throws GSSException
      */
     public static String processToken(byte[] gssToken) throws GSSException {
+        // TODO : create the local credentials here and do the processing of kerberos token
         return processToken(gssToken, localIWACredentials);
     }
 
@@ -157,7 +159,9 @@ public class IWAAuthenticationUtil {
     }
 
     /**
-     * Create server credential using SPN
+     * Create server credential using SPNName and SPNPassword. This credential is used to decrypt the Kerberos Token
+     * presented by the user. Although an actual authentication does not happen with the KDC, an invalid password
+     * will result in checksum failure when decrypting the token.
      *
      * @param callbackHandler username password callback handler
      * @throws PrivilegedActionException
@@ -165,7 +169,6 @@ public class IWAAuthenticationUtil {
      */
     private static GSSCredential createServerCredentials(CallbackHandler callbackHandler)
             throws PrivilegedActionException, LoginException {
-        // authenticate to the AD (Kerberos Server)
         LoginContext loginContext = new LoginContext(IWAConstants.SERVER, callbackHandler);
         loginContext.login();
 
@@ -212,7 +215,7 @@ public class IWAAuthenticationUtil {
      * @param password
      * @return CallbackHandler
      */
-    private static CallbackHandler getUsernamePasswordHandler(final String username, final String password) {
+    private static CallbackHandler getUsernamePasswordHandler(final String username, final char[] password) {
         final CallbackHandler handler = new CallbackHandler() {
             public void handle(final Callback[] callback) {
                 for (int i = 0; i < callback.length; i++) {
@@ -222,7 +225,7 @@ public class IWAAuthenticationUtil {
                         nameCallback.setName(username);
                     } else if (currentCallBack instanceof PasswordCallback) {
                         final PasswordCallback passCallback = (PasswordCallback) currentCallBack;
-                        passCallback.setPassword(password.toCharArray());
+                        passCallback.setPassword(password);
                     } else {
                         log.error("Unsupported Callback i = " + i + "; class = " + currentCallBack.getClass().getName());
                     }
@@ -233,22 +236,9 @@ public class IWAAuthenticationUtil {
         return handler;
     }
 
-
-    /**
-     * get GSSCredentials for a particular KDC server
-     *
-     * @param kdcServerURL URL of the Kerberos Server
-     * @return
-     */
-    public static GSSCredential getCredentials(String kdcServerURL) {
-        return gssCredentialMap.get(kdcServerURL);
-    }
-
-
     /**
      * Create GSSCredentials to communicate with a Kerberos Server
      *
-     * @param kdcServer   URL of the Kerberos Server
      * @param SPNName     Service Principal Name for the Identity Server
      * @param SPNPassword Service Principal password
      * @return created GSSCredentials
@@ -256,15 +246,58 @@ public class IWAAuthenticationUtil {
      * @throws LoginException
      * @throws GSSException
      */
-    public static GSSCredential createCredentials(String kdcServer, String SPNName, String SPNPassword)
+    public static GSSCredential createCredentials(String SPNName, char[] SPNPassword)
             throws PrivilegedActionException, LoginException, GSSException {
 
         CallbackHandler callbackHandler = getUsernamePasswordHandler(SPNName, SPNPassword);
-        GSSCredential gssCredential = createServerCredentials(callbackHandler);
+        return createServerCredentials(callbackHandler);
+    }
 
-        // add the created credentials to the map
-        gssCredentialMap.put(kdcServer.toLowerCase(), gssCredential);
-        return gssCredential;
+    /**
+     * Util Method to extract the Realm (Domain) name from a fullyQualified user name
+     * eg: admin@IS.LOCAL --> IS.LOCAL
+     *
+     * @param fullyQualifiedUserName
+     * @return
+     */
+    public static String extractRealmFromUserName(String fullyQualifiedUserName) {
+        if (StringUtils.isEmpty(fullyQualifiedUserName)) {
+            throw new IllegalArgumentException("Authenticated user's fully qualified name cannot be empty.");
+        }
+
+        // remove the AD domain from the username
+        int index = fullyQualifiedUserName.lastIndexOf("@");
+        return fullyQualifiedUserName.substring(index+1);
+    }
+
+    /**
+     * Util method to get the domain/realm aware username from the fullyQualified username
+     * eg: admin@IS.LOCAL --> admin
+     *
+     * @param fullyQualifiedUserName
+     * @return
+     */
+    public static String getDomainAwareUserName(String fullyQualifiedUserName) {
+        if (StringUtils.isEmpty(fullyQualifiedUserName)) {
+            throw new IllegalArgumentException("Authenticated user's fully qualified name cannot be empty.");
+        }
+
+        // remove the AD domain from the username
+        int index = fullyQualifiedUserName.lastIndexOf("@");
+        return fullyQualifiedUserName.substring(0, index);
+    }
+
+    /**
+     * Invalide a session. This is to prevent session fixation attacks
+     * @param request
+     */
+    public static void invalidateSession(HttpServletRequest request) {
+        if (request.isRequestedSessionIdValid()) {
+            // invalidate the session. ie. clear all attributes
+            request.getSession().invalidate();
+            // create a new session thereby creating a new jSessionID
+            request.getSession(true);
+        }
     }
 
 }

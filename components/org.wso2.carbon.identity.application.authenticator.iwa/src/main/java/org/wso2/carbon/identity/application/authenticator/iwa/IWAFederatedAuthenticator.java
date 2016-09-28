@@ -20,6 +20,7 @@ package org.wso2.carbon.identity.application.authenticator.iwa;
 
 
 import org.apache.axiom.om.util.Base64;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -35,6 +36,7 @@ import java.security.PrivilegedActionException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.security.auth.login.LoginException;
 import javax.servlet.http.HttpServletRequest;
@@ -61,36 +63,36 @@ public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implemen
 
         HttpSession session = request.getSession(false);
         final String gssToken = (String) session.getAttribute(IWAConstants.KERBEROS_TOKEN);
-        invalidateSession(request);
+        IWAAuthenticationUtil.invalidateSession(request);
 
         Map authenticatorProperties = context.getAuthenticatorProperties();
         GSSCredential gssCredential;
         try {
-            String kerberosServer = (String) authenticatorProperties.get(IWAConstants.KERBEROS_SERVER);
+            // URL of the Kerberos Server that issues the token the user will authenticate with.
+            String kdcServerUrl = (String) authenticatorProperties.get(IWAConstants.KERBEROS_SERVER);
+
+            // Service Principal Name : an identifier representing IS registered at the Kerberos Server, this can
+            // sometimes be the service account of the IS at the Kerberos Server
             String spnName = (String) authenticatorProperties.get(IWAConstants.SPN_NAME);
-            String spnPassword = (String) authenticatorProperties.get(IWAConstants.SPN_PASSWORD);
 
-            if (StringUtils.isBlank(kerberosServer) || StringUtils.isBlank(spnName) ||
-                    StringUtils.isBlank(spnPassword)) {
-                throw new AuthenticationFailedException
-                        ("Kerberos Server/Service Principal Name/Service Principal Password cannot " +
-                                "be empty to create credentials for KDC : " + kerberosServer);
+            // Password of the service account of IS at the Kerberos Server
+            char[] spnPassword = authenticatorProperties.get(IWAConstants.SPN_PASSWORD).toString().toCharArray();
+
+            String errorMsg = null;
+            if (StringUtils.isBlank(kdcServerUrl)) {
+                errorMsg = "Kerberos Server URL cannot be empty.";
+            } else if (StringUtils.isBlank(spnName)) {
+                errorMsg = "Service Principal Name (SPN) cannot be empty.";
+            } else if (ArrayUtils.isEmpty(spnPassword)) {
+                errorMsg = "Service Principal password cannot be empty.";
             }
 
-            // get credentials for the kerberos server
-            gssCredential = IWAAuthenticationUtil.getCredentials(kerberosServer);
-            // create new server credentials for KDC since they don't exist
-            if (gssCredential == null) {
-                if (log.isDebugEnabled()) {
-                    log.debug("Server credentials not available for KDC : " + kerberosServer);
-                }
-
-                gssCredential = IWAAuthenticationUtil.createCredentials(kerberosServer, spnName, spnPassword);
-
-                if (log.isDebugEnabled()) {
-                    log.debug("Created new server credentials for " + kerberosServer);
-                }
+            if (errorMsg != null) {
+                throw new AuthenticationFailedException(errorMsg);
             }
+
+            // create credentials to decrypt the Kerberos Token used to authenticate the user
+            gssCredential = IWAAuthenticationUtil.createCredentials(spnName, spnPassword);
 
         } catch (PrivilegedActionException | LoginException | GSSException ex) {
             throw new AuthenticationFailedException("Cannot create kerberos credentials for server.", ex);
@@ -98,7 +100,7 @@ public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implemen
 
         // get the authenticated username from the GSS Token
         String fullyQualifiedName = getAuthenticatedUserFromToken(gssCredential, Base64.decode(gssToken));
-        String authenticatedUserName = getDomainAwareUserName(fullyQualifiedName);
+        String authenticatedUserName = IWAAuthenticationUtil.getDomainAwareUserName(fullyQualifiedName);
         if (log.isDebugEnabled()) {
             log.debug("Authenticated Federated User : " + authenticatedUserName);
         }
@@ -118,20 +120,20 @@ public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implemen
         kerberosServerURL.setDescription("Kerberos Server");
         configProperties.add(kerberosServerURL);
 
-        Property SPNName = new Property();
-        SPNName.setName(IWAConstants.SPN_NAME);
-        SPNName.setDisplayName("Service Principal Name");
-        SPNName.setRequired(true);
-        SPNName.setDescription("Kerberos Service Principal Name");
-        configProperties.add(SPNName);
+        Property spnName = new Property();
+        spnName.setName(IWAConstants.SPN_NAME);
+        spnName.setDisplayName("Service Principal Name");
+        spnName.setRequired(true);
+        spnName.setDescription("Kerberos Service Principal Name");
+        configProperties.add(spnName);
 
-        Property SPNPassword = new Property();
-        SPNPassword.setName(IWAConstants.SPN_PASSWORD);
-        SPNPassword.setDisplayName("Service Principal Password");
-        SPNPassword.setRequired(true);
-        SPNPassword.setDescription("Kerberos Service Principal Password");
-        SPNPassword.setConfidential(true);
-        configProperties.add(SPNPassword);
+        Property spnPassword = new Property();
+        spnPassword.setName(IWAConstants.SPN_PASSWORD);
+        spnPassword.setDisplayName("Service Principal Password");
+        spnPassword.setRequired(true);
+        spnPassword.setDescription("Kerberos Service Principal Password");
+        spnPassword.setConfidential(true);
+        configProperties.add(spnPassword);
 
         return configProperties;
     }
@@ -155,4 +157,5 @@ public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implemen
             throw new AuthenticationFailedException("Error processing the GSS Token", e);
         }
     }
+
 }

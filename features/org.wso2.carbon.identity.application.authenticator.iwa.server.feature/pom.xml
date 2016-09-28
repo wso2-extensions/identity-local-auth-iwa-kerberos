@@ -38,7 +38,6 @@
         <dependency>
             <groupId>org.wso2.carbon.identity.local.auth.iwa</groupId>
             <artifactId>org.wso2.carbon.identity.application.authenticator.iwa</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.wso2.carbon.identity.framework</groupId>

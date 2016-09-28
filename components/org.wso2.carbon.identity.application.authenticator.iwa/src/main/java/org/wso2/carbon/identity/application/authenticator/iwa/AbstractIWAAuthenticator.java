@@ -87,27 +87,4 @@ public abstract class AbstractIWAAuthenticator extends AbstractApplicationAuthen
             throw new AuthenticationFailedException(msg, e);
         }
     }
-
-    protected void invalidateSession(HttpServletRequest request) {
-        if (request.isRequestedSessionIdValid()) {
-            // invalidate the session. ie. clear all attributes
-            request.getSession().invalidate();
-            // create a new session thereby creating a new jSessionID
-            request.getSession(true);
-        }
-    }
-
-
-    protected String getDomainAwareUserName(String fullyQualifiedUserName) throws AuthenticationFailedException {
-        if (StringUtils.isEmpty(fullyQualifiedUserName)) {
-            throw new AuthenticationFailedException("Authenticated user not found in GSS Token");
-        }
-
-        if (log.isDebugEnabled()) {
-            log.debug("Authenticated user(FQDN) extracted from kerberos ticket : " + fullyQualifiedUserName);
-        }
-        // remove the AD domain from the username
-        int index = fullyQualifiedUserName.lastIndexOf("@");
-        return fullyQualifiedUserName.substring(0, index);
-    }
 }

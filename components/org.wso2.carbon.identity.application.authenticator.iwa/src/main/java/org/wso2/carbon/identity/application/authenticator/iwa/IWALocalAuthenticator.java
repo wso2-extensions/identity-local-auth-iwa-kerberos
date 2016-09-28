@@ -61,7 +61,7 @@ public class IWALocalAuthenticator extends AbstractIWAAuthenticator implements
 
         HttpSession session = request.getSession(false);
         String gssToken = (String) session.getAttribute(IWAConstants.KERBEROS_TOKEN);
-        invalidateSession(request);
+        IWAAuthenticationUtil.invalidateSession(request);
 
         // get the authenticated username by processing the GSS Token
         String fullyQualifiedName;
@@ -72,28 +72,14 @@ public class IWALocalAuthenticator extends AbstractIWAAuthenticator implements
         }
 
         if (IdentityUtil.isBlank(fullyQualifiedName)) {
-            throw new AuthenticationFailedException("Authenticated user not found in GSS Token : "
-                    + fullyQualifiedName);
+            throw new AuthenticationFailedException("Authenticated user not found in GSS Token : " +
+                    fullyQualifiedName);
         }
 
-        String authenticatedUserName = getDomainAwareUserName(fullyQualifiedName);
-
-        boolean isExistInPrimaryUserStore;
-        UserStoreManager userStoreManager;
+        String authenticatedUserName = IWAAuthenticationUtil.getDomainAwareUserName(fullyQualifiedName);
+        String realm = IWAAuthenticationUtil.extractRealmFromUserName(fullyQualifiedName);
         String spTenantDomain = context.getTenantDomain();
-        try {
-            userStoreManager = getPrimaryUserStoreManager(spTenantDomain);
-            String userStoreDomain = IdentityUtil.getPrimaryDomainName();
-            authenticatedUserName = IdentityUtil.addDomainToName(authenticatedUserName, userStoreDomain);
-
-            // Check whether the authenticated user is in primary user store. This is a limitation and will be improved
-            // to support ADs mounted as secondary user stores
-            isExistInPrimaryUserStore =
-                    userStoreManager.isExistingUser(MultitenantUtils.getTenantAwareUsername(authenticatedUserName));
-
-        } catch (org.wso2.carbon.user.api.UserStoreException e) {
-            throw new AuthenticationFailedException("IWALocalAuthenticator failed to find the user in the userstore", e);
-        }
+        boolean isExistInPrimaryUserStore = isExistsInUserStore(authenticatedUserName, spTenantDomain, realm);
 
         if (!isExistInPrimaryUserStore) {
             String msg = "User " + authenticatedUserName + "not found in the user store of tenant " + spTenantDomain;
@@ -135,5 +121,30 @@ public class IWALocalAuthenticator extends AbstractIWAAuthenticator implements
         int tenantId = realmService.getTenantManager().getTenantId(tenantDomain);
 
         return (UserStoreManager) realmService.getTenantUserRealm(tenantId).getUserStoreManager();
+    }
+
+    /**
+     * Check whether the authenticated user exists in any user store that belongs to the realm the user belongs to.
+     *
+     * @param authenticatedUserName
+     * @param tenantDomain
+     * @return
+     */
+    private boolean isExistsInUserStore(String authenticatedUserName, String tenantDomain, String realm) throws
+            AuthenticationFailedException {
+        UserStoreManager userStoreManager;
+        try {
+            userStoreManager = getPrimaryUserStoreManager(tenantDomain);
+            String userStoreDomain = IdentityUtil.getPrimaryDomainName();
+            authenticatedUserName = IdentityUtil.addDomainToName(authenticatedUserName, userStoreDomain);
+
+            // Check whether the authenticated user is in primary user store. This is a limitation and will be improved
+            // to support ADs mounted as secondary user stores
+            return userStoreManager.isExistingUser(MultitenantUtils.getTenantAwareUsername(authenticatedUserName));
+
+        } catch (UserStoreException e) {
+            throw new AuthenticationFailedException("IWALocalAuthenticator failed to find the user in the userstore", e);
+        }
+
     }
 }

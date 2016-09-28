@@ -20,6 +20,7 @@ package org.wso2.carbon.identity.application.authenticator.iwa;
 
 
 import org.apache.axiom.om.util.Base64;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -35,6 +36,7 @@ import java.security.PrivilegedActionException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.security.auth.login.LoginException;
 import javax.servlet.http.HttpServletRequest;
@@ -74,16 +76,16 @@ public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implemen
             String spnName = (String) authenticatorProperties.get(IWAConstants.SPN_NAME);
 
             // Password of the service account of IS at the Kerberos Server
-            String spnPassword = (String) authenticatorProperties.get(IWAConstants.SPN_PASSWORD);
+            char[] spnPassword = authenticatorProperties.get(IWAConstants.SPN_PASSWORD).toString().toCharArray();
 
-            if (StringUtils.isBlank(kdcServer) || StringUtils.isBlank(spnName) || StringUtils.isBlank(spnPassword)) {
+            if (StringUtils.isBlank(kdcServer) || StringUtils.isBlank(spnName) || ArrayUtils.isEmpty(spnPassword)) {
                 throw new AuthenticationFailedException
                         ("Kerberos Server/Service Principal Name/Service Principal Password cannot " +
                                 "be empty to create credentials for KDC : " + kdcServer);
             }
 
             // create credentials to decrypt the Kerberos Token used to authenticate the user
-            gssCredential = IWAAuthenticationUtil.createCredentials(spnName, spnPassword.toCharArray());
+            gssCredential = IWAAuthenticationUtil.createCredentials(spnName, spnPassword);
 
         } catch (PrivilegedActionException | LoginException | GSSException ex) {
             throw new AuthenticationFailedException("Cannot create kerberos credentials for server.", ex);
@@ -148,4 +150,5 @@ public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implemen
             throw new AuthenticationFailedException("Error processing the GSS Token", e);
         }
     }
+
 }

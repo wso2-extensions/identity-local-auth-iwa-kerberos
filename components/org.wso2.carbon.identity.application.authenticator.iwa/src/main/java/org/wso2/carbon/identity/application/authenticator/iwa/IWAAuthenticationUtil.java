@@ -17,6 +17,7 @@
  */
 package org.wso2.carbon.identity.application.authenticator.iwa;
 
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -27,15 +28,14 @@ import org.ietf.jgss.GSSManager;
 import org.wso2.carbon.base.CarbonBaseConstants;
 import org.wso2.carbon.identity.application.authenticator.iwa.internal.IWAServiceDataHolder;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
+import org.wso2.carbon.user.api.RealmConfiguration;
 import org.wso2.carbon.user.core.service.RealmService;
 
 import java.nio.file.Paths;
 import java.security.Principal;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
-import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import javax.security.auth.Subject;
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.CallbackHandler;
@@ -64,16 +64,23 @@ public class IWAAuthenticationUtil {
 
     public static void initializeIWALocalAuthenticator() throws GSSException, PrivilegedActionException, LoginException {
         RealmService realmService = dataHolder.getRealmService();
+        RealmConfiguration realmConfiguration = realmService.getBootstrapRealmConfiguration();
 
         // TODO : read this config from a file in registry
-        String servicePrincipalName =
-                realmService.getBootstrapRealmConfiguration().getUserStoreProperty(IWAConstants.SPN_NAME);
-        String servicePrincipalPassword =
-                realmService.getBootstrapRealmConfiguration().getUserStoreProperty(IWAConstants.SPN_PASSWORD);
+        String servicePrincipalName = realmConfiguration.getUserStoreProperty(IWAConstants.SPN_NAME);
 
-        if (StringUtils.isNotEmpty(servicePrincipalName) && StringUtils.isNotEmpty(servicePrincipalPassword)) {
-            CallbackHandler callbackHandler = getUsernamePasswordHandler(servicePrincipalName,
-                    servicePrincipalPassword.toCharArray());
+        char[] servicePrincipalPassword = new char[0];
+        if (realmConfiguration.getUserStoreProperties().containsKey(IWAConstants.SPN_PASSWORD)) {
+            if (StringUtils.isNotBlank(realmConfiguration.getUserStoreProperty(IWAConstants.SPN_PASSWORD))) {
+                servicePrincipalPassword =
+                        realmConfiguration.getUserStoreProperty(IWAConstants.SPN_PASSWORD).toCharArray();
+            }
+        }
+
+        if (StringUtils.isNotEmpty(servicePrincipalName) && !ArrayUtils.isEmpty(servicePrincipalPassword)) {
+            CallbackHandler callbackHandler = getUserNamePasswordCallbackHandler(servicePrincipalName,
+                    servicePrincipalPassword);
+
             // create kerberos server credentials for IS
             localIWACredentials = createServerCredentials(callbackHandler);
             serverPrincipal = new KerberosPrincipal(localIWACredentials.getName().toString());
@@ -215,7 +222,7 @@ public class IWAAuthenticationUtil {
      * @param password
      * @return CallbackHandler
      */
-    private static CallbackHandler getUsernamePasswordHandler(final String username, final char[] password) {
+    private static CallbackHandler getUserNamePasswordCallbackHandler(final String username, final char[] password) {
         final CallbackHandler handler = new CallbackHandler() {
             public void handle(final Callback[] callback) {
                 for (int i = 0; i < callback.length; i++) {
@@ -249,7 +256,7 @@ public class IWAAuthenticationUtil {
     public static GSSCredential createCredentials(String SPNName, char[] SPNPassword)
             throws PrivilegedActionException, LoginException, GSSException {
 
-        CallbackHandler callbackHandler = getUsernamePasswordHandler(SPNName, SPNPassword);
+        CallbackHandler callbackHandler = getUserNamePasswordCallbackHandler(SPNName, SPNPassword);
         return createServerCredentials(callbackHandler);
     }
 
@@ -267,7 +274,7 @@ public class IWAAuthenticationUtil {
 
         // remove the AD domain from the username
         int index = fullyQualifiedUserName.lastIndexOf("@");
-        return fullyQualifiedUserName.substring(index+1);
+        return fullyQualifiedUserName.substring(index + 1);
     }
 
     /**
@@ -289,6 +296,7 @@ public class IWAAuthenticationUtil {
 
     /**
      * Invalide a session. This is to prevent session fixation attacks
+     *
      * @param request
      */
     public static void invalidateSession(HttpServletRequest request) {

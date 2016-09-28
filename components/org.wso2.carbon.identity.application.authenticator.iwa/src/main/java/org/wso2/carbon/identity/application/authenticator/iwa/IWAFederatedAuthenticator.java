@@ -113,20 +113,20 @@ public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implemen
         kerberosServerURL.setDescription("Kerberos Server");
         configProperties.add(kerberosServerURL);
 
-        Property SPNName = new Property();
-        SPNName.setName(IWAConstants.SPN_NAME);
-        SPNName.setDisplayName("Service Principal Name");
-        SPNName.setRequired(true);
-        SPNName.setDescription("Kerberos Service Principal Name");
-        configProperties.add(SPNName);
+        Property spnName = new Property();
+        spnName.setName(IWAConstants.SPN_NAME);
+        spnName.setDisplayName("Service Principal Name");
+        spnName.setRequired(true);
+        spnName.setDescription("Kerberos Service Principal Name");
+        configProperties.add(spnName);
 
-        Property SPNPassword = new Property();
-        SPNPassword.setName(IWAConstants.SPN_PASSWORD);
-        SPNPassword.setDisplayName("Service Principal Password");
-        SPNPassword.setRequired(true);
-        SPNPassword.setDescription("Kerberos Service Principal Password");
-        SPNPassword.setConfidential(true);
-        configProperties.add(SPNPassword);
+        Property spnPassword = new Property();
+        spnPassword.setName(IWAConstants.SPN_PASSWORD);
+        spnPassword.setDisplayName("Service Principal Password");
+        spnPassword.setRequired(true);
+        spnPassword.setDescription("Kerberos Service Principal Password");
+        spnPassword.setConfidential(true);
+        configProperties.add(spnPassword);
 
         return configProperties;
     }

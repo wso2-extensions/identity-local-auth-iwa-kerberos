@@ -247,17 +247,17 @@ public class IWAAuthenticationUtil {
     /**
      * Create GSSCredentials to communicate with a Kerberos Server
      *
-     * @param SPNName     Service Principal Name for the Identity Server
-     * @param SPNPassword Service Principal password
+     * @param spnName     Service Principal Name for the Identity Server
+     * @param spnPassword Service Principal password
      * @return created GSSCredentials
      * @throws PrivilegedActionException
      * @throws LoginException
      * @throws GSSException
      */
-    public static GSSCredential createCredentials(String SPNName, char[] SPNPassword)
+    public static GSSCredential createCredentials(String spnName, char[] spnPassword)
             throws PrivilegedActionException, LoginException, GSSException {
 
-        CallbackHandler callbackHandler = getUserNamePasswordCallbackHandler(SPNName, SPNPassword);
+        CallbackHandler callbackHandler = getUserNamePasswordCallbackHandler(spnName, spnPassword);
         return createServerCredentials(callbackHandler);
     }
 

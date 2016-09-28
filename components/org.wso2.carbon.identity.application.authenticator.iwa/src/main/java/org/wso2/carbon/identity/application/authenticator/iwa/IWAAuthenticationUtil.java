@@ -78,7 +78,7 @@ public class IWAAuthenticationUtil {
             }
         }
 
-        if (StringUtils.isNotEmpty(servicePrincipalName) && !ArrayUtils.isEmpty(servicePrincipalPassword)) {
+        if (StringUtils.isNotEmpty(servicePrincipalName) && ArrayUtils.isNotEmpty(servicePrincipalPassword)) {
             CallbackHandler callbackHandler = getUserNamePasswordCallbackHandler(servicePrincipalName,
                     servicePrincipalPassword);
 

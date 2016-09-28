@@ -69,7 +69,7 @@ public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implemen
         GSSCredential gssCredential;
         try {
             // URL of the Kerberos Server that issues the token the user will authenticate with.
-            String kdcServer = (String) authenticatorProperties.get(IWAConstants.KERBEROS_SERVER);
+            String kdcServerUrl = (String) authenticatorProperties.get(IWAConstants.KERBEROS_SERVER);
 
             // Service Principal Name : an identifier representing IS registered at the Kerberos Server, this can
             // sometimes be the service account of the IS at the Kerberos Server
@@ -78,10 +78,17 @@ public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implemen
             // Password of the service account of IS at the Kerberos Server
             char[] spnPassword = authenticatorProperties.get(IWAConstants.SPN_PASSWORD).toString().toCharArray();
 
-            if (StringUtils.isBlank(kdcServer) || StringUtils.isBlank(spnName) || ArrayUtils.isEmpty(spnPassword)) {
-                throw new AuthenticationFailedException
-                        ("Kerberos Server/Service Principal Name/Service Principal Password cannot " +
-                                "be empty to create credentials for KDC : " + kdcServer);
+            String errorMsg = null;
+            if (StringUtils.isBlank(kdcServerUrl)) {
+                errorMsg = "Kerberos Server URL cannot be empty.";
+            } else if (StringUtils.isBlank(spnName)) {
+                errorMsg = "Service Principal Name (SPN) cannot be empty.";
+            } else if (ArrayUtils.isEmpty(spnPassword)) {
+                errorMsg = "Service Principal password cannot be empty.";
+            }
+
+            if (errorMsg != null) {
+                throw new AuthenticationFailedException(errorMsg);
             }
 
             // create credentials to decrypt the Kerberos Token used to authenticate the user

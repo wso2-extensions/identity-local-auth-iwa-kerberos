@@ -120,8 +120,7 @@ public class IWALocalAuthenticator extends AbstractIWAAuthenticator implements
         RealmService realmService = IWAServiceDataHolder.getInstance().getRealmService();
         int tenantId = realmService.getTenantManager().getTenantId(tenantDomain);
 
-        return (org.wso2.carbon.user.core.UserStoreManager) realmService.getTenantUserRealm(tenantId)
-                .getUserStoreManager();
+        return (UserStoreManager) realmService.getTenantUserRealm(tenantId).getUserStoreManager();
     }
 
     /**
@@ -135,7 +134,7 @@ public class IWALocalAuthenticator extends AbstractIWAAuthenticator implements
             AuthenticationFailedException {
         UserStoreManager userStoreManager;
         try {
-            userStoreManager = getPrimaryUserStoreManager(tenantDomain).getSecondaryUserStoreManager().getSecondaryUserStoreManager();
+            userStoreManager = getPrimaryUserStoreManager(tenantDomain);
             String userStoreDomain = IdentityUtil.getPrimaryDomainName();
             authenticatedUserName = IdentityUtil.addDomainToName(authenticatedUserName, userStoreDomain);
 

@@ -71,6 +71,7 @@ public class IWAAuthenticationUtil {
 
         char[] servicePrincipalPassword = new char[0];
         if (realmConfiguration.getUserStoreProperties().containsKey(IWAConstants.SPN_PASSWORD)) {
+            // this check is needed since UserStoreProperties is a hashMap and therefore null values are possible.
             if (StringUtils.isNotBlank(realmConfiguration.getUserStoreProperty(IWAConstants.SPN_PASSWORD))) {
                 servicePrincipalPassword =
                         realmConfiguration.getUserStoreProperty(IWAConstants.SPN_PASSWORD).toCharArray();

@@ -134,7 +134,8 @@ public class IWALocalAuthenticator extends AbstractIWAAuthenticator implements
             AuthenticationFailedException {
         UserStoreManager userStoreManager;
         try {
-            userStoreManager = getPrimaryUserStoreManager(tenantDomain);
+
+            userStoreManager = getPrimaryUserStoreManager(tenantDomain).getSecondaryUserStoreManager();
             String userStoreDomain = IdentityUtil.getPrimaryDomainName();
             authenticatedUserName = IdentityUtil.addDomainToName(authenticatedUserName, userStoreDomain);
 

@@ -27,14 +27,18 @@ import org.ietf.jgss.GSSException;
 import org.ietf.jgss.GSSManager;
 import org.wso2.carbon.base.CarbonBaseConstants;
 import org.wso2.carbon.identity.application.authenticator.iwa.internal.IWAServiceDataHolder;
+import org.wso2.carbon.identity.application.common.model.ClaimMapping;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.user.api.RealmConfiguration;
+import org.wso2.carbon.user.core.claim.Claim;
 import org.wso2.carbon.user.core.service.RealmService;
 
 import java.nio.file.Paths;
 import java.security.Principal;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import javax.security.auth.Subject;
 import javax.security.auth.callback.Callback;
@@ -307,6 +311,24 @@ public class IWAAuthenticationUtil {
             // create a new session thereby creating a new jSessionID
             request.getSession(true);
         }
+    }
+
+    /**
+     * Build a claim mapping map with the Claim array for set claims.
+     * @param userClaims
+     * @return
+     */
+    public static Map<ClaimMapping,String> buildClaimMappingMap(Claim[] userClaims)
+    {
+        Map<ClaimMapping, String> claims = new HashMap<>();
+        for (Claim iwaClaim:userClaims
+                ) {
+            if (iwaClaim.getValue() != null) {
+                claims.put(ClaimMapping.build(iwaClaim.getClaimUri(),iwaClaim.getClaimUri(),iwaClaim.getValue(),
+                                              false),iwaClaim.getValue());
+            }
+        }
+        return claims;
     }
 
 }

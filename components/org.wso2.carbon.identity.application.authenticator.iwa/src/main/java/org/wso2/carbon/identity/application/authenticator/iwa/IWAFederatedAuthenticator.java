@@ -30,18 +30,24 @@ import org.wso2.carbon.identity.application.authentication.framework.FederatedAp
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
+import org.wso2.carbon.identity.application.authenticator.iwa.internal.IWAServiceDataHolder;
 import org.wso2.carbon.identity.application.common.model.Property;
+import org.wso2.carbon.identity.core.util.IdentityUtil;
+import org.wso2.carbon.user.api.UserStoreException;
+import org.wso2.carbon.user.core.UserStoreManager;
+import org.wso2.carbon.user.core.claim.Claim;
+import org.wso2.carbon.user.core.service.RealmService;
+import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
-import java.security.PrivilegedActionException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.concurrent.ConcurrentHashMap;
 import javax.security.auth.login.LoginException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import java.security.PrivilegedActionException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * IWAFederatedAuthenticator authenticates a user from a Kerberos Token (GSS Token) sent by a pre-registered KDC.
@@ -67,6 +73,7 @@ public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implemen
 
         Map authenticatorProperties = context.getAuthenticatorProperties();
         GSSCredential gssCredential;
+        String userStoreDomain;
         try {
             // URL of the Kerberos Server that issues the token the user will authenticate with.
             String kdcServerUrl = (String) authenticatorProperties.get(IWAConstants.KERBEROS_SERVER);
@@ -74,6 +81,8 @@ public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implemen
             // Service Principal Name : an identifier representing IS registered at the Kerberos Server, this can
             // sometimes be the service account of the IS at the Kerberos Server
             String spnName = (String) authenticatorProperties.get(IWAConstants.SPN_NAME);
+
+            userStoreDomain = (String) authenticatorProperties.get(IWAConstants.USER_STORE_DOMAIN);
 
             // Password of the service account of IS at the Kerberos Server
             char[] spnPassword = authenticatorProperties.get(IWAConstants.SPN_PASSWORD).toString().toCharArray();
@@ -100,13 +109,26 @@ public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implemen
 
         // get the authenticated username from the GSS Token
         String fullyQualifiedName = getAuthenticatedUserFromToken(gssCredential, Base64.decode(gssToken));
+        String realm = IWAAuthenticationUtil.extractRealmFromUserName(fullyQualifiedName);
         String authenticatedUserName = IWAAuthenticationUtil.getDomainAwareUserName(fullyQualifiedName);
+
         if (log.isDebugEnabled()) {
             log.debug("Authenticated Federated User : " + authenticatedUserName);
         }
 
-        context.setSubject(
-                AuthenticatedUser.createFederateAuthenticatedUserFromSubjectIdentifier(authenticatedUserName));
+        boolean isExistInPrimaryUserStore = isExistsInUserStore(authenticatedUserName,
+                                                                context.getTenantDomain(), userStoreDomain);
+        if (!isExistInPrimaryUserStore) {
+            String msg = "User " + authenticatedUserName + "not found in the user store of tenant " + userStoreDomain;
+            throw new AuthenticationFailedException("Authentication Failed, " + msg);
+        }
+        AuthenticatedUser authenticatedUserObj =
+                AuthenticatedUser.createFederateAuthenticatedUserFromSubjectIdentifier(authenticatedUserName);
+        authenticatedUserObj.setAuthenticatedSubjectIdentifier(authenticatedUserName);
+        authenticatedUserObj.setUserAttributes(
+                IWAAuthenticationUtil.buildClaimMappingMap(getUserClaims(authenticatedUserName,
+                                                                         context.getTenantDomain(), userStoreDomain)));
+        context.setSubject(authenticatedUserObj);
     }
 
     @Override
@@ -135,6 +157,14 @@ public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implemen
         spnPassword.setConfidential(true);
         configProperties.add(spnPassword);
 
+        Property spnUserStoreDomain = new Property();
+        spnUserStoreDomain.setName(IWAConstants.USER_STORE_DOMAIN);
+        spnUserStoreDomain.setDisplayName("User store domains");
+        spnUserStoreDomain.setRequired(false);
+        spnUserStoreDomain.setDescription("User store domains comma (,) separated to check user");
+        spnUserStoreDomain.setConfidential(false);
+        configProperties.add(spnUserStoreDomain);
+
         return configProperties;
     }
 
@@ -157,5 +187,91 @@ public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implemen
             throw new AuthenticationFailedException("Error processing the GSS Token", e);
         }
     }
+
+    private boolean IsUserExistsInListedUserStores(String authenticatedUserName, String tenantDomain, String
+            userStoreDomains) throws AuthenticationFailedException {
+        boolean isUserExists = false;
+        try {
+            for (String userStoreDomain : userStoreDomains.split(",")
+                    ) {
+                if (isExistsInUserStore(authenticatedUserName, tenantDomain, userStoreDomain)) {
+                    isUserExists = true;
+                }
+            }
+            return isUserExists;
+        } catch (AuthenticationFailedException e) {
+            throw new AuthenticationFailedException("IWAFederatedAuthenticator " +
+                                                    "failed to find the user in the userstore", e);
+        }
+    }
+
+
+    /**
+     * Check whether the authenticated user exists in any user store that belongs to the realm the user belongs to.
+     *
+     * @param authenticatedUserName
+     * @param tenantDomain
+     * @param userStoreDomain
+     * @return
+     */
+    private boolean isExistsInUserStore(String authenticatedUserName, String tenantDomain, String userStoreDomain)
+            throws
+            AuthenticationFailedException {
+        UserStoreManager userStoreManager;
+        try {
+            userStoreManager = getPrimaryUserStoreManager(tenantDomain).getSecondaryUserStoreManager(userStoreDomain);
+            // String userStoreDomain = IdentityUtil.getPrimaryDomainName();
+            authenticatedUserName = IdentityUtil.addDomainToName(authenticatedUserName, userStoreDomain);
+
+            // Check whether the authenticated user is in primary user store. This is a limitation and will be improved
+            // to support ADs mounted as secondary user stores
+            return userStoreManager.isExistingUser(MultitenantUtils.getTenantAwareUsername(authenticatedUserName));
+
+        } catch (UserStoreException e) {
+            throw new AuthenticationFailedException("IWAFederatedAuthenticator " +
+                                                    "failed to find the user in the userstore", e);
+        }
+
+    }
+
+    /**
+     * Gets Array of user claims which are associated with the given user.
+     *
+     * @param authenticatedUserName
+     * @param tenantDomain
+     * @param userStoreDomains
+     * @return
+     * @throws AuthenticationFailedException
+     */
+    private Claim[] getUserClaims(String authenticatedUserName, String tenantDomain,
+                                  String userStoreDomains) throws
+                                                           AuthenticationFailedException {
+        String searchUserStore = IWAConstants.PRIMARY_USERSTORE;
+        try {
+            for (String userStoreDomain : userStoreDomains.split(",")
+                    ) {
+                if (isExistsInUserStore(authenticatedUserName, tenantDomain, userStoreDomain)) {
+                    searchUserStore = userStoreDomain;
+                    break;
+                } else {
+                    continue;
+                }
+            }
+            return getPrimaryUserStoreManager(tenantDomain)
+                    .getSecondaryUserStoreManager(searchUserStore).getUserClaimValues
+                            (authenticatedUserName, "");
+        } catch (UserStoreException e) {
+            throw new AuthenticationFailedException("IWAFederatedAuthenticator failed to get user claims " +
+                                                    "from userstore", e);
+        }
+    }
+
+    private UserStoreManager getPrimaryUserStoreManager(String tenantDomain) throws UserStoreException {
+        RealmService realmService = IWAServiceDataHolder.getInstance().getRealmService();
+        int tenantId = realmService.getTenantManager().getTenantId(tenantDomain);
+
+        return (UserStoreManager) realmService.getTenantUserRealm(tenantId).getUserStoreManager();
+    }
+
 
 }

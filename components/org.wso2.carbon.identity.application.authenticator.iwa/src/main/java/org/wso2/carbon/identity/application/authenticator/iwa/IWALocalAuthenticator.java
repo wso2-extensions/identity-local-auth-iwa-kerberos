@@ -44,7 +44,7 @@ import javax.servlet.http.HttpSession;
  * with this authenticator
  */
 public class IWALocalAuthenticator extends AbstractIWAAuthenticator implements
-        LocalApplicationAuthenticator {
+                                                                    LocalApplicationAuthenticator {
 
     public static final String AUTHENTICATOR_NAME = "IWALocalAuthenticator";
     public static final String AUTHENTICATOR_FRIENDLY_NAME = "iwa-local";
@@ -62,7 +62,6 @@ public class IWALocalAuthenticator extends AbstractIWAAuthenticator implements
         HttpSession session = request.getSession(false);
         String gssToken = (String) session.getAttribute(IWAConstants.KERBEROS_TOKEN);
         IWAAuthenticationUtil.invalidateSession(request);
-
         // get the authenticated username by processing the GSS Token
         String fullyQualifiedName;
         try {
@@ -73,7 +72,7 @@ public class IWALocalAuthenticator extends AbstractIWAAuthenticator implements
 
         if (IdentityUtil.isBlank(fullyQualifiedName)) {
             throw new AuthenticationFailedException("Authenticated user not found in GSS Token : " +
-                    fullyQualifiedName);
+                                                    fullyQualifiedName);
         }
 
         String authenticatedUserName = IWAAuthenticationUtil.getDomainAwareUserName(fullyQualifiedName);
@@ -115,7 +114,6 @@ public class IWALocalAuthenticator extends AbstractIWAAuthenticator implements
         return IWAAuthenticationUtil.processToken(gssToken);
     }
 
-
     private UserStoreManager getPrimaryUserStoreManager(String tenantDomain) throws UserStoreException {
         RealmService realmService = IWAServiceDataHolder.getInstance().getRealmService();
         int tenantId = realmService.getTenantManager().getTenantId(tenantDomain);
@@ -131,10 +129,9 @@ public class IWALocalAuthenticator extends AbstractIWAAuthenticator implements
      * @return
      */
     private boolean isExistsInUserStore(String authenticatedUserName, String tenantDomain, String realm) throws
-            AuthenticationFailedException {
+                                                                                                         AuthenticationFailedException {
         UserStoreManager userStoreManager;
         try {
-
             userStoreManager = getPrimaryUserStoreManager(tenantDomain).getSecondaryUserStoreManager();
             String userStoreDomain = IdentityUtil.getPrimaryDomainName();
             authenticatedUserName = IdentityUtil.addDomainToName(authenticatedUserName, userStoreDomain);

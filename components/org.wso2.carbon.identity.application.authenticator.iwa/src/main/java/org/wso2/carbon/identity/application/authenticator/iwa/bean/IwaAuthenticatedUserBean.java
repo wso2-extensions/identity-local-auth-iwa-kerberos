@@ -15,6 +15,9 @@
  */
 package org.wso2.carbon.identity.application.authenticator.iwa.bean;
 
+/**
+ * Bean for containing user information
+ */
 public class IWAAuthenticatedUserBean {
     String userStoreDomain;
     String tenantDomain;
@@ -36,8 +39,6 @@ public class IWAAuthenticatedUserBean {
     public void setUserExists(boolean userExists) {
         isUserExists = userExists;
     }
-
-
 
     public String getTenantDomain() {
         return tenantDomain;

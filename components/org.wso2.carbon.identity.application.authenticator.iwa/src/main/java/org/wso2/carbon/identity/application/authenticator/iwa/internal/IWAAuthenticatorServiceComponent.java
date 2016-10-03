@@ -24,9 +24,9 @@ import org.osgi.service.component.ComponentContext;
 import org.osgi.service.http.HttpService;
 import org.osgi.service.http.NamespaceException;
 import org.wso2.carbon.identity.application.authentication.framework.ApplicationAuthenticator;
-import org.wso2.carbon.identity.application.authenticator.iwa.IWALocalAuthenticator;
 import org.wso2.carbon.identity.application.authenticator.iwa.IWAConstants;
 import org.wso2.carbon.identity.application.authenticator.iwa.IWAFederatedAuthenticator;
+import org.wso2.carbon.identity.application.authenticator.iwa.IWALocalAuthenticator;
 import org.wso2.carbon.identity.application.authenticator.iwa.servlet.IWAServlet;
 import org.wso2.carbon.user.core.service.RealmService;
 
@@ -61,9 +61,9 @@ public class IWAAuthenticatorServiceComponent {
             httpService.registerServlet(IWAConstants.IWA_URL, iwaServlet, null, null);
 
             ctxt.getBundleContext().registerService(ApplicationAuthenticator.class.getName(),
-                    iwaLocalAuthenticator, null);
+                                                    iwaLocalAuthenticator, null);
             ctxt.getBundleContext().registerService(ApplicationAuthenticator.class.getName(),
-                    iwaFederatedAuthenticator, null);
+                                                    iwaFederatedAuthenticator, null);
             if (log.isDebugEnabled()) {
                 log.debug("IWALocalAuthenticator bundle is activated");
             }

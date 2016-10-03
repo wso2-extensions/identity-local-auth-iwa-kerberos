@@ -38,7 +38,7 @@ public class IWAConstants {
     public static final String AUTHORIZATION_HEADER = "Authorization";
     public static final String NTLM_PROLOG = "TlRMTVNT";
     public static final String SPN_NAME = "SPNName";
-    public static final String USER_STORE_DOMAIN = "UserStoreDomain";
+    public static final String USER_STORE_DOMAINS = "UserStoreDomains";
     public static final String SPN_PASSWORD = "SPNPassword";
     public static final String KDC_REALM = "KDCRealm";
     public static final String SERVER = "Server";

@@ -57,9 +57,7 @@ public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implemen
     public static final String AUTHENTICATOR_FRIENDLY_NAME = "IWA federated";
 
     private static final long serialVersionUID = -713445365110141169L;
-
     private static final Log log = LogFactory.getLog(IWAFederatedAuthenticator.class);
-
 
     @Override
     protected void processAuthenticationResponse(HttpServletRequest request, HttpServletResponse response,
@@ -240,7 +238,6 @@ public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implemen
             throw new AuthenticationFailedException("IWAApplicationAuthenticator " +
                                                     "failed to find the user in the userstores", e);
         }
-
     }
 
     /**
@@ -267,6 +264,4 @@ public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implemen
         int tenantId = realmService.getTenantManager().getTenantId(tenantDomain);
         return (UserStoreManager) realmService.getTenantUserRealm(tenantId).getUserStoreManager();
     }
-
-
 }

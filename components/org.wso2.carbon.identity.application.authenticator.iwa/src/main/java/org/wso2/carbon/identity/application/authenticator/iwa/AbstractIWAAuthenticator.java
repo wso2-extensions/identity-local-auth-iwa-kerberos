@@ -18,7 +18,6 @@
 
 package org.wso2.carbon.identity.application.authenticator.iwa;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.identity.application.authentication.framework.AbstractApplicationAuthenticator;
@@ -56,7 +55,9 @@ public abstract class AbstractIWAAuthenticator extends AbstractApplicationAuthen
     }
 
     @Override
-    protected void initiateAuthenticationRequest(HttpServletRequest request, HttpServletResponse response, AuthenticationContext context) throws AuthenticationFailedException {
+    protected void initiateAuthenticationRequest(HttpServletRequest request,
+                                                 HttpServletResponse response,
+                                                 AuthenticationContext context) throws AuthenticationFailedException {
         sendToLoginPage(request, response, context.getContextIdentifier());
     }
 

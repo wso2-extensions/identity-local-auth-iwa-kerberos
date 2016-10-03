@@ -33,13 +33,6 @@ import org.wso2.carbon.user.api.RealmConfiguration;
 import org.wso2.carbon.user.core.claim.Claim;
 import org.wso2.carbon.user.core.service.RealmService;
 
-import java.nio.file.Paths;
-import java.security.Principal;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
 import javax.security.auth.Subject;
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.CallbackHandler;
@@ -49,6 +42,13 @@ import javax.security.auth.kerberos.KerberosPrincipal;
 import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
 import javax.servlet.http.HttpServletRequest;
+import java.nio.file.Paths;
+import java.security.Principal;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 
 /**
@@ -66,7 +66,8 @@ public class IWAAuthenticationUtil {
     private static Log log = LogFactory.getLog(IWAAuthenticationUtil.class);
 
 
-    public static void initializeIWALocalAuthenticator() throws GSSException, PrivilegedActionException, LoginException {
+    public static void initializeIWALocalAuthenticator()
+            throws GSSException, PrivilegedActionException, LoginException {
         RealmService realmService = dataHolder.getRealmService();
         RealmConfiguration realmConfiguration = realmService.getBootstrapRealmConfiguration();
 
@@ -84,7 +85,7 @@ public class IWAAuthenticationUtil {
 
         if (StringUtils.isNotEmpty(servicePrincipalName) && ArrayUtils.isNotEmpty(servicePrincipalPassword)) {
             CallbackHandler callbackHandler = getUserNamePasswordCallbackHandler(servicePrincipalName,
-                    servicePrincipalPassword);
+                                                                                 servicePrincipalPassword);
 
             // create kerberos server credentials for IS
             localIWACredentials = createServerCredentials(callbackHandler);
@@ -118,7 +119,7 @@ public class IWAAuthenticationUtil {
 
         if (log.isDebugEnabled()) {
             String msg = "Extracted details from GSS Token, LoggedIn User : " + loggedInUserName
-                    + " , Intended target : " + target;
+                         + " , Intended target : " + target;
             log.debug(msg);
         }
 
@@ -165,7 +166,7 @@ public class IWAAuthenticationUtil {
 
         if (log.isDebugEnabled()) {
             log.debug("Kerberos config file path set : " + kerberosFilePath + " ,JAAS config file path set : "
-                    + jaasConfigPath);
+                      + jaasConfigPath);
         }
 
     }
@@ -204,7 +205,7 @@ public class IWAAuthenticationUtil {
                 new PrivilegedExceptionAction<GSSCredential>() {
                     public GSSCredential run() throws GSSException {
                         return gssManager.createCredential(null, GSSCredential.INDEFINITE_LIFETIME,
-                                dataHolder.getSpnegoOid(), GSSCredential.ACCEPT_ONLY);
+                                                           dataHolder.getSpnegoOid(), GSSCredential.ACCEPT_ONLY);
                     }
                 };
 
@@ -239,7 +240,8 @@ public class IWAAuthenticationUtil {
                         final PasswordCallback passCallback = (PasswordCallback) currentCallBack;
                         passCallback.setPassword(password);
                     } else {
-                        log.error("Unsupported Callback i = " + i + "; class = " + currentCallBack.getClass().getName());
+                        log.error("Unsupported Callback i = " + i + "; class = "
+                                  + currentCallBack.getClass().getName());
                     }
                 }
             }
@@ -315,17 +317,16 @@ public class IWAAuthenticationUtil {
 
     /**
      * Build a claim mapping map with the Claim array for set claims.
+     *
      * @param userClaims
      * @return
      */
-    public static Map<ClaimMapping,String> buildClaimMappingMap(Claim[] userClaims)
-    {
+    public static Map<ClaimMapping, String> buildClaimMappingMap(Claim[] userClaims) {
         Map<ClaimMapping, String> claims = new HashMap<>();
-        for (Claim iwaClaim:userClaims
-                ) {
+        for (Claim iwaClaim : userClaims) {
             if (iwaClaim.getValue() != null) {
-                claims.put(ClaimMapping.build(iwaClaim.getClaimUri(),iwaClaim.getClaimUri(),iwaClaim.getValue(),
-                                              false),iwaClaim.getValue());
+                claims.put(ClaimMapping.build(iwaClaim.getClaimUri(), iwaClaim.getClaimUri(), iwaClaim.getValue(),
+                                              false), iwaClaim.getValue());
             }
         }
         return claims;

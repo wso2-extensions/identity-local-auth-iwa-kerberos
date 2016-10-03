@@ -68,7 +68,8 @@ public class IWAAuthenticatorServiceComponent {
                 log.debug("IWALocalAuthenticator bundle is activated");
             }
         } catch (NamespaceException | ServletException e) {
-            log.error("Error when registering the IWA servlet, '" + IWAConstants.IWA_URL + "' may be already in use." + e);
+            log.error("Error when registering the IWA servlet, '"
+                      + IWAConstants.IWA_URL + "' may be already in use." + e);
         } catch (Throwable e) {
             log.error("IWALocalAuthenticator bundle activation failed");
         }

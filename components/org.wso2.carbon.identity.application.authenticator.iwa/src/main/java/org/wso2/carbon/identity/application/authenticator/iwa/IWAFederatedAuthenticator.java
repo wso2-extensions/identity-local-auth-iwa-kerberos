@@ -18,6 +18,14 @@
 
 package org.wso2.carbon.identity.application.authenticator.iwa;
 
+import javax.security.auth.login.LoginException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+import java.security.PrivilegedActionException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.axiom.om.util.Base64;
 import org.apache.commons.lang.ArrayUtils;
@@ -39,14 +47,6 @@ import org.wso2.carbon.user.core.UserStoreManager;
 import org.wso2.carbon.user.core.claim.Claim;
 import org.wso2.carbon.user.core.service.RealmService;
 
-import javax.security.auth.login.LoginException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
-import java.security.PrivilegedActionException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 
 /**
  * IWAFederatedAuthenticator authenticates a user from a Kerberos Token (GSS Token) sent by a pre-registered KDC.
@@ -112,7 +112,7 @@ public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implemen
             log.debug("Authenticated Federated User : " + authenticatedUserName);
         }
 
-        iWAAuthenticatedUserBean = isUserExistsInListedUserStores(authenticatedUserName,
+        iWAAuthenticatedUserBean = userInformationInListedUserStores(authenticatedUserName,
                                                                   context.getTenantDomain(), userStoreDomain);
         if (!iWAAuthenticatedUserBean.isUserExists()) {
             String msg = "User " + authenticatedUserName + "not found in the user store of tenant " + userStoreDomain;
@@ -183,7 +183,8 @@ public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implemen
         }
     }
 
-    private IWAAuthenticatedUserBean isUserExistsInListedUserStores(String authenticatedUserName, String tenantDomain,
+    private IWAAuthenticatedUserBean userInformationInListedUserStores(String authenticatedUserName, String
+            tenantDomain,
                                                                     String
                                                                             userStoreDomains)
             throws AuthenticationFailedException {

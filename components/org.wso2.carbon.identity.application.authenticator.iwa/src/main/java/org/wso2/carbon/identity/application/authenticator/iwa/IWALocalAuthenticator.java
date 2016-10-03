@@ -89,7 +89,8 @@ public class IWALocalAuthenticator extends AbstractIWAAuthenticator implements
         if (log.isDebugEnabled()) {
             log.debug("Authenticated Local User : " + userNameWithTenantDomain);
         }
-        context.setSubject(AuthenticatedUser.createLocalAuthenticatedUserFromSubjectIdentifier(userNameWithTenantDomain));
+        context.setSubject(AuthenticatedUser
+                                   .createLocalAuthenticatedUserFromSubjectIdentifier(userNameWithTenantDomain));
     }
 
     @Override
@@ -128,8 +129,8 @@ public class IWALocalAuthenticator extends AbstractIWAAuthenticator implements
      * @param tenantDomain
      * @return
      */
-    private boolean isExistsInUserStore(String authenticatedUserName, String tenantDomain, String realm) throws
-                                                                                                         AuthenticationFailedException {
+    private boolean isExistsInUserStore(String authenticatedUserName, String tenantDomain,
+                                        String realm) throws AuthenticationFailedException {
         UserStoreManager userStoreManager;
         try {
             userStoreManager = getPrimaryUserStoreManager(tenantDomain).getSecondaryUserStoreManager();
@@ -141,7 +142,8 @@ public class IWALocalAuthenticator extends AbstractIWAAuthenticator implements
             return userStoreManager.isExistingUser(MultitenantUtils.getTenantAwareUsername(authenticatedUserName));
 
         } catch (UserStoreException e) {
-            throw new AuthenticationFailedException("IWALocalAuthenticator failed to find the user in the userstore", e);
+            throw new
+                    AuthenticationFailedException("IWALocalAuthenticator failed to find the user in the userstore", e);
         }
 
     }

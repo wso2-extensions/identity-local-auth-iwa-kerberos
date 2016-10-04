@@ -18,6 +18,9 @@
 
 package org.wso2.carbon.identity.application.authenticator.iwa;
 
+/**
+ * Constants for IWA federated authenticator application
+ */
 public class IWAConstants {
 
     public static final String OS_NAME_PROPERTY = "os.name";

@@ -40,8 +40,9 @@ import javax.servlet.http.HttpSession;
 /**
  * This class handles the IWA login requests. The implementation is based on the Spnego Authentication.
  */
-public class IWAServlet extends HttpServlet {
 
+public class IWAServlet extends HttpServlet {
+    static final long serialVersionUID = 1L;
     private static Log log = LogFactory.getLog(IWAServlet.class);
 
     @Override

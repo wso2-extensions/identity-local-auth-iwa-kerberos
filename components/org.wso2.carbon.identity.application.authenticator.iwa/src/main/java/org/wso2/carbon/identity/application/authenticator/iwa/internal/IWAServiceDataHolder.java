@@ -25,9 +25,12 @@ import org.osgi.service.http.HttpService;
 import org.wso2.carbon.identity.application.authenticator.iwa.IWAConstants;
 import org.wso2.carbon.user.core.service.RealmService;
 
+/**
+ * IWAService DataHolder
+ */
 public class IWAServiceDataHolder {
 
-    private final Oid SPNEGO_OID = IWAServiceDataHolder.createOid();
+    private final Oid spnegoOid = IWAServiceDataHolder.createOid();
     private HttpService httpService;
     private RealmService realmService;
     private static Log log = LogFactory.getLog(IWAServiceDataHolder.class);
@@ -59,7 +62,7 @@ public class IWAServiceDataHolder {
     }
 
     public Oid getSpnegoOid() {
-        return SPNEGO_OID;
+        return spnegoOid;
     }
 
     public void setRealmService(RealmService realmService) {

@@ -18,6 +18,9 @@
 
 package org.wso2.carbon.identity.application.authenticator.iwa;
 
+/**
+ * Constants for IWA federated authenticator application
+ */
 public class IWAConstants {
 
     public static final String OS_NAME_PROPERTY = "os.name";
@@ -38,12 +41,14 @@ public class IWAConstants {
     public static final String AUTHORIZATION_HEADER = "Authorization";
     public static final String NTLM_PROLOG = "TlRMTVNT";
     public static final String SPN_NAME = "SPNName";
+    public static final String USER_STORE_DOMAINS = "UserStoreDomains";
     public static final String SPN_PASSWORD = "SPNPassword";
     public static final String KDC_REALM = "KDCRealm";
     public static final String SERVER = "Server";
     public static final String AUTHENTICATED_USER = "authenticated_user";
     public static final String OID = "1.3.6.1.5.5.2";
     public static final String KERBEROS_TOKEN = "kerberosToken";
+    public static final String PRIMARY_USERSTORE = "PRIMARY";
 
     public static final String KERBEROS_SERVER = "kerberosServer";
     public static final String KERBEROS_CONFIG_FILE = "java.security.auth.krb5.conf";

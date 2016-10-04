@@ -37,6 +37,8 @@ import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.core.UserStoreManager;
 import org.wso2.carbon.user.core.claim.Claim;
 import org.wso2.carbon.user.core.service.RealmService;
+import org.wso2.carbon.user.core.util.UserCoreUtil;
+import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 import java.security.PrivilegedActionException;
 import java.util.ArrayList;
@@ -108,16 +110,22 @@ public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implemen
         String fullyQualifiedName = getAuthenticatedUserFromToken(gssCredential, Base64.decode(gssToken));
         String authenticatedUserName = IWAAuthenticationUtil.getDomainAwareUserName(fullyQualifiedName);
 
+        // authenticatedUserName = userstoredomain + "/" + username + "@" + tenantDomain
+        // authenticatedUserName = username
+
         if (log.isDebugEnabled()) {
             log.debug("Authenticated Federated User : " + authenticatedUserName);
         }
 
-        if (userStoreDomain == null || userStoreDomain.isEmpty()) {
+        if (StringUtils.isEmpty(userStoreDomain)) {
             context.setSubject(
                     AuthenticatedUser.createFederateAuthenticatedUserFromSubjectIdentifier(authenticatedUserName));
         } else {
+
+
             iWAAuthenticatedUserBean = userInformationInListedUserStores(authenticatedUserName,
                                                                          context.getTenantDomain(), userStoreDomain);
+
 
             if (!iWAAuthenticatedUserBean.isUserExists()) {
                 String msg = "User " + authenticatedUserName + "not found in the user store of tenant "
@@ -125,12 +133,18 @@ public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implemen
                 throw new AuthenticationFailedException("Authentication Failed, " + msg);
             }
             //Creates local authenticated user since this refer available user stores for user.
-            AuthenticatedUser authenticatedUserObj =
-                    AuthenticatedUser.createLocalAuthenticatedUserFromSubjectIdentifier(authenticatedUserName);
-            authenticatedUserObj.setAuthenticatedSubjectIdentifier(authenticatedUserName);
-            authenticatedUserObj.setUserAttributes(
+
+            AuthenticatedUser authenticatedUser = new AuthenticatedUser();
+            authenticatedUser.setUserName(iWAAuthenticatedUserBean.getUser());
+            authenticatedUser.setUserStoreDomain(iWAAuthenticatedUserBean.getUserStoreDomain());
+            authenticatedUser.setTenantDomain(MultitenantUtils.getTenantDomain(iWAAuthenticatedUserBean.getTenantDomain()));
+
+            authenticatedUser.setAuthenticatedSubjectIdentifier(iWAAuthenticatedUserBean.getUser());
+
+            authenticatedUser.setUserAttributes(
                     IWAAuthenticationUtil.buildClaimMappingMap(getUserClaims(iWAAuthenticatedUserBean)));
-            context.setSubject(authenticatedUserObj);
+
+            context.setSubject(authenticatedUser);
 
         }
     }
@@ -208,9 +222,10 @@ public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implemen
         IWAAuthenticatedUserBean authenticatedUserBean = new IWAAuthenticatedUserBean();
         try {
             for (String userStoreDomain : userStoreDomains.split(",")) {
-                if (isUserExistsInUserStore(authenticatedUserName, tenantDomain, userStoreDomain)) {
+                if (isUserExistsInUserStore(authenticatedUserName, tenantDomain, userStoreDomain.trim())) {
                     isUserExists = true;
-                    userStoreDomainForUser = userStoreDomain;
+                    userStoreDomainForUser = userStoreDomain.trim();
+                    break;
                 }
             }
             authenticatedUserBean.setTenantDomain(tenantDomain);

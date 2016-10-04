@@ -30,7 +30,7 @@ import org.wso2.carbon.user.core.service.RealmService;
  */
 public class IWAServiceDataHolder {
 
-    private final Oid spmEgoOid = IWAServiceDataHolder.createOid();
+    private final Oid spnegoOid = IWAServiceDataHolder.createOid();
     private HttpService httpService;
     private RealmService realmService;
     private static Log log = LogFactory.getLog(IWAServiceDataHolder.class);
@@ -62,7 +62,7 @@ public class IWAServiceDataHolder {
     }
 
     public Oid getSpnegoOid() {
-        return spmEgoOid;
+        return spnegoOid;
     }
 
     public void setRealmService(RealmService realmService) {

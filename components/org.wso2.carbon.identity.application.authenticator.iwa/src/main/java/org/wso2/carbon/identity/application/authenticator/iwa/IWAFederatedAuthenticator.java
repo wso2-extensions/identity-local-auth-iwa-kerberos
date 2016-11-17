@@ -158,6 +158,7 @@ public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implemen
         kerberosServerURL.setDisplayName("Kerberos Server URL");
         kerberosServerURL.setRequired(true);
         kerberosServerURL.setDescription("Kerberos Server");
+        kerberosServerURL.setDisplayOrder(1);
         configProperties.add(kerberosServerURL);
 
         Property spnName = new Property();
@@ -165,6 +166,7 @@ public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implemen
         spnName.setDisplayName("Service Principal Name");
         spnName.setRequired(true);
         spnName.setDescription("Kerberos Service Principal Name");
+        spnName.setDisplayOrder(2);
         configProperties.add(spnName);
 
         Property spnPassword = new Property();
@@ -172,16 +174,19 @@ public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implemen
         spnPassword.setDisplayName("Service Principal Password");
         spnPassword.setRequired(true);
         spnPassword.setDescription("Kerberos Service Principal Password");
+        spnPassword.setDisplayOrder(3);
         spnPassword.setConfidential(true);
         configProperties.add(spnPassword);
 
-        Property spnUserStoreDomain = new Property();
-        spnUserStoreDomain.setName(IWAConstants.USER_STORE_DOMAINS);
-        spnUserStoreDomain.setDisplayName("User store domains");
-        spnUserStoreDomain.setRequired(false);
-        spnUserStoreDomain.setDescription("User store domains comma (,) separated to check user");
-        spnUserStoreDomain.setConfidential(false);
-        configProperties.add(spnUserStoreDomain);
+        Property userStoreDomains = new Property();
+        userStoreDomains.setName(IWAConstants.USER_STORE_DOMAINS);
+        userStoreDomains.setDisplayName("User store domains");
+        userStoreDomains.setRequired(false);
+        userStoreDomains.setDisplayOrder(4);
+        userStoreDomains.setDescription("Comma (,) separated UserStore Domains (Leave this blank if you don't want " +
+                "to check user's presence in mounted user stores.)");
+        userStoreDomains.setConfidential(false);
+        configProperties.add(userStoreDomains);
 
         return configProperties;
     }

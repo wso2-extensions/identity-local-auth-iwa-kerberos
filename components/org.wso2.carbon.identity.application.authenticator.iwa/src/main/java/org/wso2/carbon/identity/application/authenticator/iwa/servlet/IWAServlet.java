@@ -21,15 +21,12 @@ package org.wso2.carbon.identity.application.authenticator.iwa.servlet;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.ietf.jgss.GSSException;
 import org.wso2.carbon.identity.application.authenticator.iwa.IWAAuthenticationUtil;
 import org.wso2.carbon.identity.application.authenticator.iwa.IWAConstants;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 
 import java.io.IOException;
 import java.net.URLEncoder;
-import java.security.PrivilegedActionException;
-import javax.security.auth.login.LoginException;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -136,12 +133,12 @@ public class IWAServlet extends HttpServlet {
 
     @Override
     public void init(ServletConfig config) throws ServletException {
-        try {
-            // set the kerberos config path
-            IWAAuthenticationUtil.setConfigFilePaths();
-            IWAAuthenticationUtil.initializeIWALocalAuthenticator();
-        } catch (GSSException | LoginException | PrivilegedActionException e) {
-            throw new ServletException("Error when creating gss credentials.", e);
-        }
+        // set the kerberos config path
+        IWAAuthenticationUtil.setConfigFilePaths();
+        /*
+            Since we are not using the IWALocalAuthenticator class at the moment we don't have to initialize
+            credentials for it.
+        */
+        //IWAAuthenticationUtil.initializeIWALocalAuthenticator();
     }
 }

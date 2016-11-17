@@ -40,7 +40,6 @@ import java.security.PrivilegedExceptionAction;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-
 import javax.security.auth.Subject;
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.CallbackHandler;
@@ -71,7 +70,6 @@ public class IWAAuthenticationUtil {
         RealmService realmService = dataHolder.getRealmService();
         RealmConfiguration realmConfiguration = realmService.getBootstrapRealmConfiguration();
 
-        // TODO : read this config from a file in registry
         String servicePrincipalName = realmConfiguration.getUserStoreProperty(IWAConstants.SPN_NAME);
 
         char[] servicePrincipalPassword = new char[0];
@@ -85,7 +83,7 @@ public class IWAAuthenticationUtil {
 
         if (StringUtils.isNotEmpty(servicePrincipalName) && ArrayUtils.isNotEmpty(servicePrincipalPassword)) {
             CallbackHandler callbackHandler = getUserNamePasswordCallbackHandler(servicePrincipalName,
-                                                                                 servicePrincipalPassword);
+                    servicePrincipalPassword);
 
             // create kerberos server credentials for IS
             localIWACredentials = createServerCredentials(callbackHandler);
@@ -119,7 +117,7 @@ public class IWAAuthenticationUtil {
 
         if (log.isDebugEnabled()) {
             String msg = "Extracted details from GSS Token, LoggedIn User : " + loggedInUserName
-                         + " , Intended target : " + target;
+                    + " , Intended target : " + target;
             log.debug(msg);
         }
 
@@ -135,7 +133,6 @@ public class IWAAuthenticationUtil {
      * @throws GSSException
      */
     public static String processToken(byte[] gssToken) throws GSSException {
-        // TODO : create the local credentials here and do the processing of kerberos token
         return processToken(gssToken, localIWACredentials);
     }
 
@@ -166,7 +163,7 @@ public class IWAAuthenticationUtil {
 
         if (log.isDebugEnabled()) {
             log.debug("Kerberos config file path set : " + kerberosFilePath + " ,JAAS config file path set : "
-                      + jaasConfigPath);
+                    + jaasConfigPath);
         }
 
     }
@@ -205,7 +202,7 @@ public class IWAAuthenticationUtil {
                 new PrivilegedExceptionAction<GSSCredential>() {
                     public GSSCredential run() throws GSSException {
                         return gssManager.createCredential(null, GSSCredential.INDEFINITE_LIFETIME,
-                                                           dataHolder.getSpnegoOid(), GSSCredential.ACCEPT_ONLY);
+                                dataHolder.getSpnegoOid(), GSSCredential.ACCEPT_ONLY);
                     }
                 };
 
@@ -229,7 +226,8 @@ public class IWAAuthenticationUtil {
      * @return CallbackHandler
      */
     private static CallbackHandler getUserNamePasswordCallbackHandler(final String username, final char[] password) {
-        final CallbackHandler handler = new CallbackHandler() {
+
+        return new CallbackHandler() {
             public void handle(final Callback[] callback) {
                 for (int i = 0; i < callback.length; i++) {
                     Callback currentCallBack = callback[i];
@@ -240,14 +238,11 @@ public class IWAAuthenticationUtil {
                         final PasswordCallback passCallback = (PasswordCallback) currentCallBack;
                         passCallback.setPassword(password);
                     } else {
-                        log.error("Unsupported Callback i = " + i + "; class = "
-                                  + currentCallBack.getClass().getName());
+                        log.error("Unsupported Callback class = " + currentCallBack.getClass().getName());
                     }
                 }
             }
         };
-
-        return handler;
     }
 
     /**
@@ -326,7 +321,7 @@ public class IWAAuthenticationUtil {
         for (Claim iwaClaim : userClaims) {
             if (iwaClaim.getValue() != null) {
                 claims.put(ClaimMapping.build(iwaClaim.getClaimUri(), iwaClaim.getClaimUri(), iwaClaim.getValue(),
-                                              false), iwaClaim.getValue());
+                        false), iwaClaim.getValue());
             }
         }
         return claims;

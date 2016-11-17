@@ -44,7 +44,7 @@ import javax.servlet.http.HttpSession;
  * with this authenticator
  */
 public class IWALocalAuthenticator extends AbstractIWAAuthenticator implements
-                                                                    LocalApplicationAuthenticator {
+        LocalApplicationAuthenticator {
 
     public static final String AUTHENTICATOR_NAME = "IWALocalAuthenticator";
     public static final String AUTHENTICATOR_FRIENDLY_NAME = "iwa-local";
@@ -72,7 +72,7 @@ public class IWALocalAuthenticator extends AbstractIWAAuthenticator implements
 
         if (IdentityUtil.isBlank(fullyQualifiedName)) {
             throw new AuthenticationFailedException("Authenticated user not found in GSS Token : " +
-                                                    fullyQualifiedName);
+                    fullyQualifiedName);
         }
 
         String authenticatedUserName = IWAAuthenticationUtil.getDomainAwareUserName(fullyQualifiedName);
@@ -81,7 +81,7 @@ public class IWALocalAuthenticator extends AbstractIWAAuthenticator implements
         boolean isExistInPrimaryUserStore = isExistsInUserStore(authenticatedUserName, spTenantDomain, realm);
 
         if (!isExistInPrimaryUserStore) {
-            String msg = "User " + authenticatedUserName + "not found in the user store of tenant " + spTenantDomain;
+            String msg = "User " + authenticatedUserName + " not found in the user store of tenant " + spTenantDomain;
             throw new AuthenticationFailedException("Authentication Failed, " + msg);
         }
 
@@ -90,7 +90,7 @@ public class IWALocalAuthenticator extends AbstractIWAAuthenticator implements
             log.debug("Authenticated Local User : " + userNameWithTenantDomain);
         }
         context.setSubject(AuthenticatedUser
-                                   .createLocalAuthenticatedUserFromSubjectIdentifier(userNameWithTenantDomain));
+                .createLocalAuthenticatedUserFromSubjectIdentifier(userNameWithTenantDomain));
     }
 
     @Override

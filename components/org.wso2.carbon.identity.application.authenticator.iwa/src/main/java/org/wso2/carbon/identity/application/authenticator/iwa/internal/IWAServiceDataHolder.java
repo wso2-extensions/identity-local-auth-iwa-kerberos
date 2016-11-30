@@ -19,10 +19,7 @@ package org.wso2.carbon.identity.application.authenticator.iwa.internal;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.ietf.jgss.GSSException;
-import org.ietf.jgss.Oid;
 import org.osgi.service.http.HttpService;
-import org.wso2.carbon.identity.application.authenticator.iwa.IWAConstants;
 import org.wso2.carbon.user.core.service.RealmService;
 
 /**
@@ -30,39 +27,17 @@ import org.wso2.carbon.user.core.service.RealmService;
  */
 public class IWAServiceDataHolder {
 
-    private final Oid spnegoOid = IWAServiceDataHolder.createOid();
     private HttpService httpService;
     private RealmService realmService;
     private static Log log = LogFactory.getLog(IWAServiceDataHolder.class);
 
     private static IWAServiceDataHolder instance = new IWAServiceDataHolder();
 
-
     private IWAServiceDataHolder() {
     }
 
     public static IWAServiceDataHolder getInstance() {
         return instance;
-    }
-
-    /**
-     * Create mech OID for GSS token
-     *
-     * @return Oid
-     */
-    private static Oid createOid() {
-        Oid oid = null;
-        try {
-            oid = new Oid(IWAConstants.OID);
-        } catch (GSSException gsse) {
-            log.error("Unable to create OID " + IWAConstants.OID + " !" + gsse.toString(), gsse);
-        }
-        // null oid will be handled when creating server credentials
-        return oid;
-    }
-
-    public Oid getSpnegoOid() {
-        return spnegoOid;
     }
 
     public void setRealmService(RealmService realmService) {

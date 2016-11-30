@@ -17,7 +17,6 @@
  */
 package org.wso2.carbon.identity.application.authenticator.iwa;
 
-import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -29,9 +28,8 @@ import org.wso2.carbon.base.CarbonBaseConstants;
 import org.wso2.carbon.identity.application.authenticator.iwa.internal.IWAServiceDataHolder;
 import org.wso2.carbon.identity.application.common.model.ClaimMapping;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
-import org.wso2.carbon.user.api.RealmConfiguration;
 import org.wso2.carbon.user.core.claim.Claim;
-import org.wso2.carbon.user.core.service.RealmService;
+import sun.security.jgss.GSSUtil;
 
 import java.nio.file.Paths;
 import java.security.Principal;
@@ -65,32 +63,6 @@ public class IWAAuthenticationUtil {
     private static Log log = LogFactory.getLog(IWAAuthenticationUtil.class);
 
 
-    public static void initializeIWALocalAuthenticator()
-            throws GSSException, PrivilegedActionException, LoginException {
-        RealmService realmService = dataHolder.getRealmService();
-        RealmConfiguration realmConfiguration = realmService.getBootstrapRealmConfiguration();
-
-        String servicePrincipalName = realmConfiguration.getUserStoreProperty(IWAConstants.SPN_NAME);
-
-        char[] servicePrincipalPassword = new char[0];
-        if (realmConfiguration.getUserStoreProperties().containsKey(IWAConstants.SPN_PASSWORD)) {
-            // this check is needed since UserStoreProperties is a hashMap and therefore null values are possible.
-            if (StringUtils.isNotBlank(realmConfiguration.getUserStoreProperty(IWAConstants.SPN_PASSWORD))) {
-                servicePrincipalPassword =
-                        realmConfiguration.getUserStoreProperty(IWAConstants.SPN_PASSWORD).toCharArray();
-            }
-        }
-
-        if (StringUtils.isNotEmpty(servicePrincipalName) && ArrayUtils.isNotEmpty(servicePrincipalPassword)) {
-            CallbackHandler callbackHandler = getUserNamePasswordCallbackHandler(servicePrincipalName,
-                    servicePrincipalPassword);
-
-            // create kerberos server credentials for IS
-            localIWACredentials = createServerCredentials(callbackHandler);
-            serverPrincipal = new KerberosPrincipal(localIWACredentials.getName().toString());
-        }
-    }
-
     /**
      * Process kerberos token and get user name
      *
@@ -103,17 +75,14 @@ public class IWAAuthenticationUtil {
         // decrypt the kerberos ticket (GSS token)
         context.acceptSecContext(gssToken, 0, gssToken.length);
 
-        String loggedInUserName;
-        String target;
-
         // if we cannot decrypt the GSS Token we return the username as null
         if (!context.isEstablished()) {
             log.error("Unable to decrypt the kerberos ticket as context was not established.");
             return null;
         }
 
-        loggedInUserName = context.getSrcName().toString();
-        target = context.getTargName().toString();
+        String loggedInUserName = context.getSrcName().toString();
+        String target = context.getTargName().toString();
 
         if (log.isDebugEnabled()) {
             String msg = "Extracted details from GSS Token, LoggedIn User : " + loggedInUserName
@@ -141,18 +110,8 @@ public class IWAAuthenticationUtil {
      * Set jaas.conf and krb5 paths
      */
     public static void setConfigFilePaths() {
-        String kerberosFilePath = System.getProperty(IWAConstants.KERBEROS_CONFIG_FILE);
         String jaasConfigPath = System.getProperty(IWAConstants.JAAS_CONFIG_FILE);
-
         String carbonHome = System.getProperty(CarbonBaseConstants.CARBON_HOME);
-
-        // set the krb5.conf file path if not set by the system property already
-        if (IdentityUtil.isBlank(kerberosFilePath)) {
-            kerberosFilePath =
-                    Paths.get(carbonHome, "repository", "conf", "identity", IWAConstants.KERBEROS_CONF_FILE_NAME)
-                            .toString();
-            System.setProperty(IWAConstants.KERBEROS_CONFIG_FILE, kerberosFilePath);
-        }
 
         // set jaas.conf file path if not set by the system property already
         if (IdentityUtil.isBlank(jaasConfigPath)) {
@@ -162,8 +121,7 @@ public class IWAAuthenticationUtil {
         }
 
         if (log.isDebugEnabled()) {
-            log.debug("Kerberos config file path set : " + kerberosFilePath + " ,JAAS config file path set : "
-                    + jaasConfigPath);
+            log.debug("Kerberos JAAS module config file path set to : " + jaasConfigPath);
         }
 
     }
@@ -198,13 +156,12 @@ public class IWAAuthenticationUtil {
      * @throws PrivilegedActionException
      */
     private static GSSCredential createCredentialsForSubject(final Subject subject) throws PrivilegedActionException {
-        final PrivilegedExceptionAction<GSSCredential> action =
-                new PrivilegedExceptionAction<GSSCredential>() {
-                    public GSSCredential run() throws GSSException {
-                        return gssManager.createCredential(null, GSSCredential.INDEFINITE_LIFETIME,
-                                dataHolder.getSpnegoOid(), GSSCredential.ACCEPT_ONLY);
-                    }
-                };
+        final PrivilegedExceptionAction<GSSCredential> action = new PrivilegedExceptionAction<GSSCredential>() {
+            public GSSCredential run() throws GSSException {
+                return gssManager.createCredential(null, GSSCredential.INDEFINITE_LIFETIME,
+                        GSSUtil.GSS_SPNEGO_MECH_OID, GSSCredential.ACCEPT_ONLY);
+            }
+        };
 
         if (log.isDebugEnabled()) {
             Set<Principal> principals = subject.getPrincipals();
@@ -229,8 +186,7 @@ public class IWAAuthenticationUtil {
 
         return new CallbackHandler() {
             public void handle(final Callback[] callback) {
-                for (int i = 0; i < callback.length; i++) {
-                    Callback currentCallBack = callback[i];
+                for (Callback currentCallBack : callback) {
                     if (currentCallBack instanceof NameCallback) {
                         final NameCallback nameCallback = (NameCallback) currentCallBack;
                         nameCallback.setName(username);
@@ -246,7 +202,8 @@ public class IWAAuthenticationUtil {
     }
 
     /**
-     * Create GSSCredentials to communicate with a Kerberos Server
+     * Create GSSCredentials required to decrypt the Kerberos Token from the Kerberos Server in which Identity Server
+     * is a Service Principal.
      *
      * @param spnName     Service Principal Name for the Identity Server
      * @param spnPassword Service Principal password

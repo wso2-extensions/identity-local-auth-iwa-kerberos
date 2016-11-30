@@ -51,7 +51,6 @@ public class IWAAuthenticatorServiceComponent {
 
     protected void activate(ComponentContext ctxt) {
         try {
-            IWALocalAuthenticator iwaLocalAuthenticator = new IWALocalAuthenticator();
             IWAFederatedAuthenticator iwaFederatedAuthenticator = new IWAFederatedAuthenticator();
 
             // Register iwa servlet
@@ -60,8 +59,6 @@ public class IWAAuthenticatorServiceComponent {
             HttpService httpService = dataHolder.getHttpService();
             httpService.registerServlet(IWAConstants.IWA_URL, iwaServlet, null, null);
 
-//            ctxt.getBundleContext().registerService(ApplicationAuthenticator.class.getName(),
-//                                                    iwaLocalAuthenticator, null);
             ctxt.getBundleContext().registerService(ApplicationAuthenticator.class.getName(),
                                                     iwaFederatedAuthenticator, null);
             if (log.isDebugEnabled()) {

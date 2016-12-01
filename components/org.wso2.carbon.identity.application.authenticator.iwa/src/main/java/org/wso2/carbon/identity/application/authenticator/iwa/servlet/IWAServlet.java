@@ -135,10 +135,5 @@ public class IWAServlet extends HttpServlet {
     public void init(ServletConfig config) throws ServletException {
         // set the kerberos config path
         IWAAuthenticationUtil.setConfigFilePaths();
-        /*
-            Since we are not using the IWALocalAuthenticator class at the moment we don't have to initialize
-            credentials for it.
-        */
-        //IWAAuthenticationUtil.initializeIWALocalAuthenticator();
     }
 }

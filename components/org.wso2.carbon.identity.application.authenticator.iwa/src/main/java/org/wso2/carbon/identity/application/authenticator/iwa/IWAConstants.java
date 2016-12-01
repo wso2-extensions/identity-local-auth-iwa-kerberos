@@ -23,12 +23,10 @@ package org.wso2.carbon.identity.application.authenticator.iwa;
  */
 public class IWAConstants {
 
-    public static final String OS_NAME_PROPERTY = "os.name";
-    public static final String WINDOWS_OS_MATCH_STRING = "win";
     public static final String COMMON_AUTH_EP = "commonauth";
-    public static final String IWA_AUTH_EP = "iwa";
+    public static final String IWA_AUTH_EP = "iwa-kerberos";
     public static final String UTF_8 = "UTF-8";
-    public static final String IWA_URL = "/iwa";
+    public static final String IWA_URL = "/iwa-kerberos";
     public static final String IWA_PARAM_STATE = "state";
     public static final String IWA_PROCESSED = "iwaauth";
 
@@ -43,20 +41,14 @@ public class IWAConstants {
     public static final String SPN_NAME = "SPNName";
     public static final String USER_STORE_DOMAINS = "UserStoreDomains";
     public static final String SPN_PASSWORD = "SPNPassword";
-    public static final String KDC_REALM = "KDCRealm";
     public static final String SERVER = "Server";
-    public static final String AUTHENTICATED_USER = "authenticated_user";
     public static final String OID = "1.3.6.1.5.5.2";
     public static final String KERBEROS_TOKEN = "kerberosToken";
-    public static final String PRIMARY_USERSTORE = "PRIMARY";
 
     public static final String KERBEROS_SERVER = "kerberosServer";
-    public static final String KERBEROS_CONFIG_FILE = "java.security.auth.krb5.conf";
     public static final String JAAS_CONFIG_FILE = "java.security.auth.login.config";
 
-    public static final String KERBEROS_CONF_FILE_NAME = "krb5.conf";
     public static final String JAAS_CONF_FILE_NAME = "jaas.conf";
-
 
     private IWAConstants() {
     }

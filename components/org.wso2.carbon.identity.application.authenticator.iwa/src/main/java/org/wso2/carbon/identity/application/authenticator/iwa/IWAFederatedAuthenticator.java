@@ -249,7 +249,7 @@ public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implemen
             return userStoreManager.isExistingUser(userNameWithUserStoreDomain);
 
         } catch (UserStoreException e) {
-            String errorMsg = "Error when searching for user: %s in '%' userStoreDomain in '%s' tenant.";
+            String errorMsg = "Error when searching for user: %s in '%s' userStoreDomain in '%s' tenant.";
             throw new AuthenticationFailedException(
                     String.format(errorMsg, authenticatedUserName, userStoreDomain, tenantDomain), e);
         }

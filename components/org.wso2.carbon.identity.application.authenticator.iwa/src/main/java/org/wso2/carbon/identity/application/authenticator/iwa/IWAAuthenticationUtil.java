@@ -24,11 +24,11 @@ import org.ietf.jgss.GSSContext;
 import org.ietf.jgss.GSSCredential;
 import org.ietf.jgss.GSSException;
 import org.ietf.jgss.GSSManager;
-import org.wso2.carbon.base.CarbonBaseConstants;
 import org.wso2.carbon.identity.application.authenticator.iwa.internal.IWAServiceDataHolder;
 import org.wso2.carbon.identity.application.common.model.ClaimMapping;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.user.core.claim.Claim;
+import org.wso2.carbon.utils.CarbonUtils;
 import sun.security.jgss.GSSUtil;
 
 import java.nio.file.Paths;
@@ -110,18 +110,25 @@ public class IWAAuthenticationUtil {
      * Set jaas.conf and krb5 paths
      */
     public static void setConfigFilePaths() {
-        String jaasConfigPath = System.getProperty(IWAConstants.JAAS_CONFIG_FILE);
-        String carbonHome = System.getProperty(CarbonBaseConstants.CARBON_HOME);
+        String jaasConfigPath = System.getProperty(IWAConstants.JAAS_CONFIG_PROPERTY);
+        String krb5ConfigPath = System.getProperty(IWAConstants.KERBEROS_CONFIG_PROPERTY);
+        String identityConfPath = Paths.get(CarbonUtils.getCarbonConfigDirPath(), "identity").toString();
 
         // set jaas.conf file path if not set by the system property already
         if (IdentityUtil.isBlank(jaasConfigPath)) {
-            jaasConfigPath = Paths.get(carbonHome, "repository", "conf", "identity", IWAConstants.JAAS_CONF_FILE_NAME)
-                    .toString();
-            System.setProperty(IWAConstants.JAAS_CONFIG_FILE, jaasConfigPath);
+            jaasConfigPath = Paths.get(identityConfPath, IWAConstants.JAAS_CONF_FILE_NAME).toString();
+            System.setProperty(IWAConstants.JAAS_CONFIG_PROPERTY, jaasConfigPath);
+        }
+
+        // set the krb5.conf file if not set by the system property already
+        if (IdentityUtil.isBlank(krb5ConfigPath)) {
+            krb5ConfigPath = Paths.get(identityConfPath, IWAConstants.KERBEROS_CONF_FILE_NAME).toString();
+            System.setProperty(IWAConstants.KERBEROS_CONFIG_PROPERTY, krb5ConfigPath);
         }
 
         if (log.isDebugEnabled()) {
-            log.debug("Kerberos JAAS module config file path set to : " + jaasConfigPath);
+            log.debug("Kerberos jaas.conf file path set to : " + jaasConfigPath);
+            log.debug("Kerberos krb5.conf file path set to : " + jaasConfigPath);
         }
 
     }

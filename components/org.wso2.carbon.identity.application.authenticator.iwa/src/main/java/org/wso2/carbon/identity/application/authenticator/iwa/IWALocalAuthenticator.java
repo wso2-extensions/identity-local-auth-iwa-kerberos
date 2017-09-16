@@ -19,6 +19,7 @@
 package org.wso2.carbon.identity.application.authenticator.iwa;
 
 import org.apache.axiom.om.util.Base64;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.ietf.jgss.GSSException;
@@ -63,17 +64,7 @@ public class IWALocalAuthenticator extends AbstractIWAAuthenticator implements
         String gssToken = (String) session.getAttribute(IWAConstants.KERBEROS_TOKEN);
         IWAAuthenticationUtil.invalidateSession(request);
         // get the authenticated username by processing the GSS Token
-        String fullyQualifiedName;
-        try {
-            fullyQualifiedName = getAuthenticatedUserFromToken(Base64.decode(gssToken));
-        } catch (GSSException e) {
-            throw new AuthenticationFailedException("Error extracting username from the GSS Token.", e);
-        }
-
-        if (IdentityUtil.isBlank(fullyQualifiedName)) {
-            throw new AuthenticationFailedException("Authenticated user not found in GSS Token : " +
-                    fullyQualifiedName);
-        }
+        String fullyQualifiedName = getAuthenticatedUserFromToken(Base64.decode(gssToken));
 
         String authenticatedUserName = IWAAuthenticationUtil.getDomainAwareUserName(fullyQualifiedName);
         String realm = IWAAuthenticationUtil.extractRealmFromUserName(fullyQualifiedName);
@@ -108,11 +99,21 @@ public class IWALocalAuthenticator extends AbstractIWAAuthenticator implements
      * Method to extract the authenticated user name from the gss token
      *
      * @param gssToken base64 decoded gss token
-     * @return true if token can be successfully processed using credentials
-     * @throws GSSException
+     * @return Username in the form KERBEROS_DOMAIN/username if GSSToken can be processed correctly.
+     * @throws AuthenticationFailedException
      */
-    private String getAuthenticatedUserFromToken(byte[] gssToken) throws GSSException {
-        return IWAAuthenticationUtil.processToken(gssToken);
+    private String getAuthenticatedUserFromToken(byte[] gssToken) throws AuthenticationFailedException {
+        try {
+            String extractedUserNameFromTicket = IWAAuthenticationUtil.processToken(gssToken);
+            if (StringUtils.isNotBlank(extractedUserNameFromTicket)) {
+                return extractedUserNameFromTicket;
+            } else {
+                // This means the authenticated user information was not found from decrypting the Kerberos Token.
+                throw new AuthenticationFailedException("Unable to extract authenticated user from Kerberos Token.");
+            }
+        } catch (GSSException e) {
+            throw new AuthenticationFailedException("Error while processing the GSS Token.", e);
+        }
     }
 
     private UserStoreManager getPrimaryUserStoreManager(String tenantDomain) throws UserStoreException {

@@ -64,18 +64,18 @@ public class IWAAuthenticationUtil {
 
 
     /**
-     * Process kerberos token and get user name
+     * Process Kerberos token and get user name.
      *
-     * @param gssToken kerberos token
-     * @return username Username of the logged in user
+     * @param gssToken GSS token
+     * @return username Username of the logged in user if GSSToken can be decrypted correctly else return null
      * @throws GSSException
      */
     public static String processToken(byte[] gssToken, GSSCredential gssCredentials) throws GSSException {
         GSSContext context = gssManager.createContext(gssCredentials);
-        // decrypt the kerberos ticket (GSS token)
+        // Decrypt the kerberos ticket (GSS token)
         context.acceptSecContext(gssToken, 0, gssToken.length);
 
-        // if we cannot decrypt the GSS Token we return the username as null
+        // If we cannot decrypt the GSS Token properly we return the username as null.
         if (!context.isEstablished()) {
             log.error("Unable to decrypt the kerberos ticket as context was not established.");
             return null;
@@ -114,13 +114,13 @@ public class IWAAuthenticationUtil {
         String krb5ConfigPath = System.getProperty(IWAConstants.KERBEROS_CONFIG_PROPERTY);
         String identityConfPath = Paths.get(CarbonUtils.getCarbonConfigDirPath(), "identity").toString();
 
-        // set jaas.conf file path if not set by the system property already
+        // Set jaas.conf file path if not set by the system property already.
         if (IdentityUtil.isBlank(jaasConfigPath)) {
             jaasConfigPath = Paths.get(identityConfPath, IWAConstants.JAAS_CONF_FILE_NAME).toString();
             System.setProperty(IWAConstants.JAAS_CONFIG_PROPERTY, jaasConfigPath);
         }
 
-        // set the krb5.conf file if not set by the system property already
+        // Set the krb5.conf file if not set by the system property already.
         if (IdentityUtil.isBlank(krb5ConfigPath)) {
             krb5ConfigPath = Paths.get(identityConfPath, IWAConstants.KERBEROS_CONF_FILE_NAME).toString();
             System.setProperty(IWAConstants.KERBEROS_CONFIG_PROPERTY, krb5ConfigPath);

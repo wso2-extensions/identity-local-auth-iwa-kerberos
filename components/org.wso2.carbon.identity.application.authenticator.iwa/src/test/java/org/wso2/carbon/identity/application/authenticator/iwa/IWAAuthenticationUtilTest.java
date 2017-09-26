@@ -64,10 +64,10 @@ public class IWAAuthenticationUtilTest {
         passwordArray = password.toCharArray();
 
         System.setProperty("carbon.home", new File("src/test/resources/home").getAbsolutePath());
-        mockHttpSession();
+        setMockHttpSession();
     }
 
-    public void mockHttpSession() {
+    public void setMockHttpSession() {
 
         final Map<String,Object> attributes = new HashMap<>();
 

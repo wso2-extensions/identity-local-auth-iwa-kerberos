@@ -42,6 +42,9 @@ import static org.powermock.api.mockito.PowerMockito.when;
 public class IWAAuthenticationUtilTest {
 
     private static final String USERNAME_ATTRIBUTE_NAME = "username";
+    private static final String JAAS_CONFIG_PATH = "src/test/resources/home/repository/conf/identity/jaas.conf";
+    private static final String KERBEROS_CONFIG_PATH = "src/test/resources/home/repository/conf/identity/krb5.conf";
+
     private String fullQualifiedUsername;
     private String password;
     private char[] passwordArray;
@@ -65,6 +68,7 @@ public class IWAAuthenticationUtilTest {
     }
 
     public void mockHttpSession() {
+
         final Map<String,Object> attributes = new HashMap<>();
 
         doAnswer(new Answer<Object>(){
@@ -169,14 +173,36 @@ public class IWAAuthenticationUtilTest {
     }
 
     @Test
+    public void testConfigurationWithSystemProperties() {
+
+        System.setProperty(IWAConstants.JAAS_CONFIG_PROPERTY, JAAS_CONFIG_PATH);
+        System.setProperty(IWAConstants.KERBEROS_CONFIG_PROPERTY, KERBEROS_CONFIG_PATH);
+
+        IWAAuthenticationUtil.setConfigFilePaths();
+        Assert.assertNotNull(System.getProperty(IWAConstants.JAAS_CONFIG_PROPERTY), "JAAS config property not set");
+        Assert.assertNotNull(System.getProperty(IWAConstants.KERBEROS_CONFIG_PROPERTY), "Kerberos config property not set");
+    }
+
+    @Test
     public void testInvalidateSession() {
 
-        mockSession.setAttribute(USERNAME_ATTRIBUTE_NAME, fullQualifiedUsername);
         when(mockRequest.isRequestedSessionIdValid()).thenReturn(true);
         when(mockRequest.getSession()).thenReturn(mockSession);
+        mockSession.setAttribute(USERNAME_ATTRIBUTE_NAME, fullQualifiedUsername);
 
         IWAAuthenticationUtil.invalidateSession(mockRequest);
         Assert.assertNull(mockSession.getAttribute(USERNAME_ATTRIBUTE_NAME));
+    }
+
+    @Test
+    public void testInvalidateInvalidatedSession() {
+
+        when(mockRequest.isRequestedSessionIdValid()).thenReturn(false);
+        when(mockRequest.getSession()).thenReturn(mockSession);
+        mockSession.setAttribute(USERNAME_ATTRIBUTE_NAME, fullQualifiedUsername);
+
+        IWAAuthenticationUtil.invalidateSession(mockRequest);
+        Assert.assertNotNull(mockSession.getAttribute(USERNAME_ATTRIBUTE_NAME));
     }
 
     @Test

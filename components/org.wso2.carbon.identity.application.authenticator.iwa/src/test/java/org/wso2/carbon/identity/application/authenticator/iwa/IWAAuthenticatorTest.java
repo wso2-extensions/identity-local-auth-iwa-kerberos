@@ -18,6 +18,8 @@
 package org.wso2.carbon.identity.application.authenticator.iwa;
 
 import org.apache.axiom.om.util.Base64;
+import org.apache.commons.lang.StringUtils;
+import org.ietf.jgss.GSSCredential;
 import org.ietf.jgss.GSSException;
 import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
@@ -27,6 +29,7 @@ import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.testng.PowerMockTestCase;
 import org.testng.Assert;
 import org.testng.annotations.BeforeTest;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
@@ -77,6 +80,10 @@ public class IWAAuthenticatorTest extends PowerMockTestCase{
     private static final String USER_STORE_DOMAINS = "UserStoreDomains";
     private static final String SPN_PASSWORD = "SPNPassword";
 
+    private static final String SPN_NAME_VALUE = "HTTP/idp.wso2.com@IS.LOCAL";
+    private static final String USER_STORE_DOMAINS_VALUE = "PRIMARY";
+    private static final String SPN_PASSWORD_VALUE = "password";
+
     @Mock
     HttpServletRequest mockHttpRequest;
 
@@ -101,12 +108,15 @@ public class IWAAuthenticatorTest extends PowerMockTestCase{
     @Mock
     UserStoreManager mockUserStoreManager;
 
+    @Mock
+    GSSCredential mockGSSCredential;
+
     private AbstractIWAAuthenticator iwaLocalAuthenticator;
     private AbstractIWAAuthenticator iwaFederatedAuthenticator;
     private List<Property> federatedAuthenticatorConfigs;
     private AuthenticatedUser authenticatedUser;
-    IWAServiceDataHolder dataHolder;
-    byte[] token;
+    private IWAServiceDataHolder dataHolder;
+    private byte[] token;
 
     @BeforeTest
     public void setUp() throws Exception{
@@ -217,7 +227,18 @@ public class IWAAuthenticatorTest extends PowerMockTestCase{
 
         mockStatic(IdentityUtil.class);
         when(IdentityUtil.getPrimaryDomainName()).thenReturn("PRIMARY");
-        when(IdentityUtil.addDomainToName(anyString(), anyString())).thenReturn("PRIMARY/wso2");
+
+        when(IdentityUtil.addDomainToName(anyString(), anyString())).thenAnswer(new Answer<String>() {
+            @Override
+            public String answer(InvocationOnMock invocation) throws Throwable {
+                Object[] args = invocation.getArguments();
+                if (args.length > 1 && (StringUtils.isNotEmpty((String)args[0]) &&
+                        StringUtils.isNotEmpty((String)args[1]))) {
+                    return (String) args[1] + "/" + (String) args[0];
+                }
+                return null;
+            }
+        });
 
         when(IdentityUtil.isBlank(anyString())).thenReturn(false);
         when(IdentityUtil.isBlank(null)).thenReturn(true);
@@ -435,5 +456,152 @@ public class IWAAuthenticatorTest extends PowerMockTestCase{
         Assert.assertNotNull(spnName, "Configuration property not found for: " + SPN_NAME);
         Assert.assertNotNull(spnPassword, "Configuration property not found for: " + SPN_PASSWORD);
         Assert.assertNotNull(userStoreDomains, "Configuration property not found for: " + USER_STORE_DOMAINS);
+    }
+
+    @DataProvider(name = "provideInvalidAuthenticatorProperties")
+    public Object[][] provideInvalidData() {
+
+        Map<String, String> map1 = new HashMap<>();
+        map1.put(SPN_NAME, "");
+        map1.put(SPN_PASSWORD, SPN_PASSWORD_VALUE);
+
+        Map<String, String> map2 = new HashMap<>();
+        map2.put(SPN_NAME, SPN_NAME_VALUE);
+        map2.put(SPN_PASSWORD, "");
+
+        return new Object[][] {
+                { map1, "Service Principal Name (SPN) cannot be empty" },
+                { map2, "Service Principal password cannot be empty" }
+        };
+    }
+
+    @Test (dataProvider = "provideInvalidAuthenticatorProperties")
+    public void testInvalidFederatedAuthConfigs(Map<String, String> propertyMap, String errorMsg) throws Exception {
+
+        setMockHttpSession();
+        setMockIWAAuthenticationUtil();
+
+        when(mockAuthenticationContext.getAuthenticatorProperties()).thenReturn(propertyMap);
+        mockSession.setAttribute(IWAConstants.KERBEROS_TOKEN, Base64.encode(token));
+        when(mockHttpRequest.getSession(anyBoolean())).thenReturn(mockSession);
+        when(mockHttpRequest.getSession()).thenReturn(mockSession);
+
+        try {
+            iwaFederatedAuthenticator.processAuthenticationResponse(
+                    mockHttpRequest, mockHttpResponse, mockAuthenticationContext);
+            Assert.fail("Authentication response processed with incorrect configs");
+        } catch (AuthenticationFailedException e) {
+            Assert.assertTrue(e.getMessage().contains(errorMsg), "Wrong exception thrown for given configs");
+        }
+    }
+
+    @DataProvider(name = "provideAuthenticatorProperties")
+    public Object[][] provideData() {
+
+        Map<String, String> map1 = new HashMap<>();
+        map1.put(SPN_NAME, SPN_NAME_VALUE);
+        map1.put(SPN_PASSWORD, SPN_PASSWORD_VALUE);
+
+        Map<String, String> map2 = new HashMap<>();
+        map2.put(SPN_NAME, SPN_NAME_VALUE);
+        map2.put(SPN_PASSWORD, SPN_PASSWORD_VALUE);
+        map2.put(USER_STORE_DOMAINS, USER_STORE_DOMAINS_VALUE);
+
+        return new Object[][] {
+                { map1, "wso2" },
+                { map2, "wso2"}
+        };
+    }
+
+    @Test (dataProvider = "provideAuthenticatorProperties")
+    public void testProcessFederatedAuthenticationRequest(Map<String, String> propertyMap, String username)
+            throws Exception {
+
+        setMockHttpSession();
+        setMockIWAAuthenticationUtil();
+        setMockAuthenticationContext();
+
+        when(mockAuthenticationContext.getAuthenticatorProperties()).thenReturn(propertyMap);
+        mockSession.setAttribute(IWAConstants.KERBEROS_TOKEN, Base64.encode(token));
+        when(mockHttpRequest.getSession(anyBoolean())).thenReturn(mockSession);
+        when(mockHttpRequest.getSession()).thenReturn(mockSession);
+
+        when(IWAAuthenticationUtil.createCredentials(anyString(), any(char[].class))).thenReturn(mockGSSCredential);
+        when(IWAAuthenticationUtil.processToken(
+                any(byte[].class), any(GSSCredential.class))).thenReturn("wso2@IS.LOCAL");
+
+        if (StringUtils.isNotEmpty(propertyMap.get(USER_STORE_DOMAINS))) {
+
+            initCommonMocks();
+            when(mockUserStoreManager.isExistingUser(anyString())).thenReturn(true);
+            when(mockUserStoreManager.getSecondaryUserStoreManager(anyString())).thenReturn(mockUserStoreManager);
+        }
+
+
+        iwaFederatedAuthenticator.processAuthenticationResponse(
+                mockHttpRequest, mockHttpResponse, mockAuthenticationContext);
+        Assert.assertEquals(authenticatedUser.getAuthenticatedSubjectIdentifier(), username);
+
+
+    }
+
+    @Test
+    public void testCreateCredentialExceptions() throws Exception {
+
+        setMockHttpSession();
+        setMockIWAAuthenticationUtil();
+
+        Map<String, String> map = new HashMap<>();
+        map.put(SPN_NAME, SPN_NAME_VALUE);
+        map.put(SPN_PASSWORD, SPN_PASSWORD_VALUE);
+        map.put(USER_STORE_DOMAINS, USER_STORE_DOMAINS_VALUE);
+
+        when(mockAuthenticationContext.getAuthenticatorProperties()).thenReturn(map);
+        mockSession.setAttribute(IWAConstants.KERBEROS_TOKEN, Base64.encode(token));
+        when(mockHttpRequest.getSession(anyBoolean())).thenReturn(mockSession);
+        when(mockHttpRequest.getSession()).thenReturn(mockSession);
+
+        when(IWAAuthenticationUtil.createCredentials(anyString(), any(char[].class))).thenThrow(new GSSException(0));
+
+        try {
+            iwaFederatedAuthenticator.processAuthenticationResponse(
+                    mockHttpRequest, mockHttpResponse, mockAuthenticationContext);
+            Assert.fail("Authentication response processed without creating GSSCredentials");
+        } catch (AuthenticationFailedException e) {
+            Assert.assertTrue(e.getMessage().contains("Cannot create kerberos credentials for server"));
+        }
+    }
+
+    @Test
+    public void testUserDoesNotExistException() throws Exception {
+
+        initCommonMocks();
+        setMockHttpSession();
+        setMockIWAAuthenticationUtil();
+        setMockAuthenticationContext();
+
+        Map<String, String> map = new HashMap<>();
+        map.put(SPN_NAME, SPN_NAME_VALUE);
+        map.put(SPN_PASSWORD, SPN_PASSWORD_VALUE);
+        map.put(USER_STORE_DOMAINS, USER_STORE_DOMAINS_VALUE);
+
+        when(mockAuthenticationContext.getAuthenticatorProperties()).thenReturn(map);
+        mockSession.setAttribute(IWAConstants.KERBEROS_TOKEN, Base64.encode(token));
+        when(mockHttpRequest.getSession(anyBoolean())).thenReturn(mockSession);
+        when(mockHttpRequest.getSession()).thenReturn(mockSession);
+
+        when(IWAAuthenticationUtil.createCredentials(anyString(), any(char[].class))).thenReturn(mockGSSCredential);
+        when(IWAAuthenticationUtil.processToken(
+                any(byte[].class), any(GSSCredential.class))).thenReturn("wso2@IS.LOCAL");
+
+        when(mockUserStoreManager.isExistingUser(anyString())).thenReturn(false);
+        when(mockUserStoreManager.getSecondaryUserStoreManager(anyString())).thenReturn(mockUserStoreManager);
+
+        try {
+            iwaFederatedAuthenticator.processAuthenticationResponse(
+                    mockHttpRequest, mockHttpResponse, mockAuthenticationContext);
+        } catch (AuthenticationFailedException e) {
+            Assert.assertTrue(e.getMessage().contains("not found in the user store of tenant "));
+        }
     }
 }

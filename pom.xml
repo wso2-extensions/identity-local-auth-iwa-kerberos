@@ -179,12 +179,6 @@
                 <version>${slf4j.api.version}</version>
             </dependency>
 
-            <!--<dependency>-->
-                <!--<groupId>org.mockito</groupId>-->
-                <!--<artifactId>mockito-core</artifactId>-->
-                <!--<version>${mockito.version}</version>-->
-            <!--</dependency>-->
-
             <dependency>
                 <groupId>org.powermock</groupId>
                 <artifactId>powermock-api-mockito</artifactId>

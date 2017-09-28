@@ -18,10 +18,12 @@
 package org.wso2.carbon.identity.application.authenticator.iwa;
 
 import org.ietf.jgss.GSSCredential;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+import org.powermock.modules.testng.PowerMockTestCase;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
@@ -39,9 +41,12 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.powermock.api.mockito.PowerMockito.when;
 
-public class IWAAuthenticationUtilTest {
+public class IWAAuthenticationUtilTest extends PowerMockTestCase {
 
     private static final String USERNAME_ATTRIBUTE_NAME = "username";
+    private static final String JAAS_CONFIG_PATH = "src/test/resources/home/repository/conf/identity/jaas.conf";
+    private static final String KERBEROS_CONFIG_PATH = "src/test/resources/home/repository/conf/identity/krb5.conf";
+
     private String fullQualifiedUsername;
     private String password;
     private char[] passwordArray;
@@ -52,19 +57,26 @@ public class IWAAuthenticationUtilTest {
     @Mock
     HttpSession mockSession;
 
+    private GSSCredential gssCredentials;
+
+    @InjectMocks
+    private IWAAuthenticationUtil util;
+
     @BeforeMethod
     public void setUp() throws Exception {
 
         MockitoAnnotations.initMocks(this);
-        fullQualifiedUsername = "testUser@KERBEROS.DOMAIN";
-        password = "password";
+
+        fullQualifiedUsername = "wso2@IS.LOCAL";
+        password = "Boow123#";
         passwordArray = password.toCharArray();
 
         System.setProperty("carbon.home", new File("src/test/resources/home").getAbsolutePath());
-        mockHttpSession();
+        setMockHttpSession();
     }
 
-    public void mockHttpSession() {
+    public void setMockHttpSession() {
+
         final Map<String,Object> attributes = new HashMap<>();
 
         doAnswer(new Answer<Object>(){
@@ -98,7 +110,7 @@ public class IWAAuthenticationUtilTest {
     public void testGetDomainAwareUserName() {
 
         String username = IWAAuthenticationUtil.getDomainAwareUserName(fullQualifiedUsername);
-        Assert.assertEquals(username, "testUser");
+        Assert.assertEquals(username, "wso2");
     }
 
     @Test (expectedExceptions = {IllegalArgumentException.class})
@@ -111,7 +123,7 @@ public class IWAAuthenticationUtilTest {
     public void testGetRealmFromUserName() {
 
         String domain = IWAAuthenticationUtil.extractRealmFromUserName(fullQualifiedUsername);
-        Assert.assertEquals(domain, "KERBEROS.DOMAIN");
+        Assert.assertEquals(domain, "IS.LOCAL");
     }
 
     @Test (expectedExceptions = {IllegalArgumentException.class})
@@ -169,22 +181,44 @@ public class IWAAuthenticationUtilTest {
     }
 
     @Test
+    public void testConfigurationWithSystemProperties() {
+
+        System.setProperty(IWAConstants.JAAS_CONFIG_PROPERTY, JAAS_CONFIG_PATH);
+        System.setProperty(IWAConstants.KERBEROS_CONFIG_PROPERTY, KERBEROS_CONFIG_PATH);
+
+        IWAAuthenticationUtil.setConfigFilePaths();
+        Assert.assertNotNull(System.getProperty(IWAConstants.JAAS_CONFIG_PROPERTY), "JAAS config property not set");
+        Assert.assertNotNull(System.getProperty(IWAConstants.KERBEROS_CONFIG_PROPERTY), "Kerberos config property not set");
+    }
+
+    @Test
     public void testInvalidateSession() {
 
-        mockSession.setAttribute(USERNAME_ATTRIBUTE_NAME, fullQualifiedUsername);
         when(mockRequest.isRequestedSessionIdValid()).thenReturn(true);
         when(mockRequest.getSession()).thenReturn(mockSession);
+        mockSession.setAttribute(USERNAME_ATTRIBUTE_NAME, fullQualifiedUsername);
 
         IWAAuthenticationUtil.invalidateSession(mockRequest);
         Assert.assertNull(mockSession.getAttribute(USERNAME_ATTRIBUTE_NAME));
     }
 
     @Test
+    public void testInvalidateInvalidatedSession() {
+
+        when(mockRequest.isRequestedSessionIdValid()).thenReturn(false);
+        when(mockRequest.getSession()).thenReturn(mockSession);
+        mockSession.setAttribute(USERNAME_ATTRIBUTE_NAME, fullQualifiedUsername);
+
+        IWAAuthenticationUtil.invalidateSession(mockRequest);
+        Assert.assertNotNull(mockSession.getAttribute(USERNAME_ATTRIBUTE_NAME));
+    }
+
+    @Test
     public void testCreateCredentials() throws Exception{
 
-        GSSCredential gssCredential = IWAAuthenticationUtil.createCredentials(fullQualifiedUsername, passwordArray);
-        Assert.assertEquals(gssCredential.getRemainingLifetime(), GSSCredential.INDEFINITE_LIFETIME);
-        Assert.assertEquals(gssCredential.ACCEPT_ONLY, 2);
+        gssCredentials = IWAAuthenticationUtil.createCredentials(fullQualifiedUsername, passwordArray);
+        Assert.assertEquals(gssCredentials.getRemainingLifetime(), GSSCredential.INDEFINITE_LIFETIME);
+        Assert.assertEquals(gssCredentials.ACCEPT_ONLY, 2);
 
     }
 

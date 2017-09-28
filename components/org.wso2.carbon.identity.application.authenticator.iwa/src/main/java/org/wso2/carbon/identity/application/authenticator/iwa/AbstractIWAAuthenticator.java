@@ -81,7 +81,7 @@ public abstract class AbstractIWAAuthenticator extends AbstractApplicationAuthen
 
             iwaURL = IdentityUtil.getServerURL(IWAConstants.IWA_AUTH_EP, false, true) +
                     "?" + IWAConstants.IWA_PARAM_STATE + "=" + URLEncoder.encode(ctx, IWAConstants.UTF_8);
-            response.sendRedirect(response.encodeRedirectURL(iwaURL));
+            response.sendRedirect(iwaURL);
 
         } catch (IOException e) {
             String msg = "Error when redirecting to the login page : " + iwaURL;

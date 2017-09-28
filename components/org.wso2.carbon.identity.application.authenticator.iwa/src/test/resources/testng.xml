@@ -21,7 +21,7 @@
     <test name="Util-Tests" preserve-order="true" parallel="false">
         <classes>
             <class name="org.wso2.carbon.identity.application.authenticator.iwa.IWAAuthenticationUtilTest" />
-            <class name="org.wso2.carbon.identity.application.authenticator.iwa.IWALocalAuthenticatorTest" />
+            <class name="org.wso2.carbon.identity.application.authenticator.iwa.IWAAuthenticatorTest" />
         </classes>
     </test>
 </suite>

@@ -17,6 +17,7 @@
  */
 package org.wso2.carbon.identity.application.authenticator.iwa;
 
+import org.apache.commons.logging.Log;
 import org.ietf.jgss.GSSCredential;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -31,6 +32,7 @@ import org.testng.annotations.Test;
 import org.wso2.carbon.user.core.claim.Claim;
 
 import java.io.File;
+import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
@@ -57,6 +59,9 @@ public class IWAAuthenticationUtilTest extends PowerMockTestCase {
     @Mock
     HttpSession mockSession;
 
+    @Mock
+    Log mockedLog;
+
     private GSSCredential gssCredentials;
 
     @InjectMocks
@@ -73,6 +78,7 @@ public class IWAAuthenticationUtilTest extends PowerMockTestCase {
 
         System.setProperty("carbon.home", new File("src/test/resources/home").getAbsolutePath());
         setMockHttpSession();
+        setMockedLog();
     }
 
     public void setMockHttpSession() {
@@ -104,6 +110,17 @@ public class IWAAuthenticationUtilTest extends PowerMockTestCase {
                 return null;
             }
         }).when(mockSession).invalidate();
+    }
+
+    public void setMockedLog() throws Exception {
+
+        Class<?> clazz = IWAAuthenticationUtil.class;
+        Object utilObject = clazz.newInstance();
+        Field logField = utilObject.getClass().getDeclaredField("log");
+        logField.setAccessible(true);
+        logField.set(utilObject, mockedLog);
+
+        when(mockedLog.isDebugEnabled()).thenReturn(true);
     }
 
     @Test
@@ -176,8 +193,11 @@ public class IWAAuthenticationUtilTest extends PowerMockTestCase {
     public void testConfiguration() {
 
         IWAAuthenticationUtil.setConfigFilePaths();
-        Assert.assertNotNull(System.getProperty(IWAConstants.JAAS_CONFIG_PROPERTY), "JAAS config property not set");
-        Assert.assertNotNull(System.getProperty(IWAConstants.KERBEROS_CONFIG_PROPERTY), "Kerberos config property not set");
+        String jaasPath = System.getProperty(IWAConstants.JAAS_CONFIG_PROPERTY);
+        String krb5Path = System.getProperty(IWAConstants.KERBEROS_CONFIG_PROPERTY);
+
+        Assert.assertNotNull(jaasPath, "JAAS config property not set");
+        Assert.assertNotNull(krb5Path, "Kerberos config property not set");
     }
 
     @Test

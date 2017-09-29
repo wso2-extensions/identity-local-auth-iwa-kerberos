@@ -19,6 +19,7 @@ package org.wso2.carbon.identity.application.authenticator.iwa;
 
 import org.apache.axiom.om.util.Base64;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.logging.Log;
 import org.ietf.jgss.GSSCredential;
 import org.ietf.jgss.GSSException;
 import org.mockito.Mock;
@@ -44,6 +45,8 @@ import org.wso2.carbon.user.core.tenant.TenantManager;
 import org.wso2.carbon.user.core.util.UserCoreUtil;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -110,6 +113,9 @@ public class IWAAuthenticatorTest extends PowerMockTestCase{
 
     @Mock
     GSSCredential mockGSSCredential;
+
+    @Mock
+    Log mockedLog;
 
     private AbstractIWAAuthenticator iwaLocalAuthenticator;
     private AbstractIWAAuthenticator iwaFederatedAuthenticator;
@@ -242,6 +248,24 @@ public class IWAAuthenticatorTest extends PowerMockTestCase{
 
         when(IdentityUtil.isBlank(anyString())).thenReturn(false);
         when(IdentityUtil.isBlank(null)).thenReturn(true);
+
+        Class<?> clazz1 = IWALocalAuthenticator.class;
+        Object localAuthObject = clazz1.newInstance();
+        Field localAuthenticatorLogField = localAuthObject.getClass().getDeclaredField("log");
+        localAuthenticatorLogField.setAccessible(true);
+        localAuthenticatorLogField.set(localAuthObject, mockedLog);
+
+        Class<?> clazz2 = IWAFederatedAuthenticator.class;
+        Object federatedAuthObject = clazz2.newInstance();
+        Field federatedAuthenticatorLogField = federatedAuthObject.getClass().getDeclaredField("log");
+
+        Field modifiersField = Field.class.getDeclaredField("modifiers");
+        modifiersField.setAccessible(true);
+        modifiersField.setInt(federatedAuthenticatorLogField, federatedAuthenticatorLogField.getModifiers() & ~Modifier.FINAL);
+
+        federatedAuthenticatorLogField.setAccessible(true);
+        federatedAuthenticatorLogField.set(federatedAuthObject, mockedLog);
+        when(mockedLog.isDebugEnabled()).thenReturn(true);
     }
 
 

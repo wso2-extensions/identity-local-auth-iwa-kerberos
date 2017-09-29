@@ -23,6 +23,8 @@
             <class name="org.wso2.carbon.identity.application.authenticator.iwa.IWAAuthenticationUtilTest" />
             <class name="org.wso2.carbon.identity.application.authenticator.iwa.IWAAuthenticatorTest" />
             <class name="org.wso2.carbon.identity.application.authenticator.iwa.IWAServiceDataHolderTest" />
+            <class name="org.wso2.carbon.identity.application.authenticator.iwa.IWAAuthenticatorServiceComponentTest" />
+            <class name="org.wso2.carbon.identity.application.authenticator.iwa.IWAServletTest" />
         </classes>
     </test>
 </suite>

@@ -19,6 +19,7 @@ package org.wso2.carbon.identity.application.authenticator.iwa;
 
 import org.apache.axiom.om.util.Base64;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.logging.Log;
 import org.ietf.jgss.GSSCredential;
 import org.ietf.jgss.GSSException;
 import org.mockito.Mock;
@@ -38,12 +39,15 @@ import org.wso2.carbon.identity.application.authenticator.iwa.internal.IWAServic
 import org.wso2.carbon.identity.application.common.model.Property;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.user.core.UserRealm;
+import org.wso2.carbon.user.core.UserStoreException;
 import org.wso2.carbon.user.core.UserStoreManager;
 import org.wso2.carbon.user.core.service.RealmService;
 import org.wso2.carbon.user.core.tenant.TenantManager;
 import org.wso2.carbon.user.core.util.UserCoreUtil;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -110,6 +114,9 @@ public class IWAAuthenticatorTest extends PowerMockTestCase{
 
     @Mock
     GSSCredential mockGSSCredential;
+
+    @Mock
+    Log mockedLog;
 
     private AbstractIWAAuthenticator iwaLocalAuthenticator;
     private AbstractIWAAuthenticator iwaFederatedAuthenticator;
@@ -242,6 +249,24 @@ public class IWAAuthenticatorTest extends PowerMockTestCase{
 
         when(IdentityUtil.isBlank(anyString())).thenReturn(false);
         when(IdentityUtil.isBlank(null)).thenReturn(true);
+
+        Class<?> clazz1 = IWALocalAuthenticator.class;
+        Object localAuthObject = clazz1.newInstance();
+        Field localAuthenticatorLogField = localAuthObject.getClass().getDeclaredField("log");
+        localAuthenticatorLogField.setAccessible(true);
+        localAuthenticatorLogField.set(localAuthObject, mockedLog);
+
+        Class<?> clazz2 = IWAFederatedAuthenticator.class;
+        Object federatedAuthObject = clazz2.newInstance();
+        Field federatedAuthenticatorLogField = federatedAuthObject.getClass().getDeclaredField("log");
+
+        Field modifiersField = Field.class.getDeclaredField("modifiers");
+        modifiersField.setAccessible(true);
+        modifiersField.setInt(federatedAuthenticatorLogField, federatedAuthenticatorLogField.getModifiers() & ~Modifier.FINAL);
+
+        federatedAuthenticatorLogField.setAccessible(true);
+        federatedAuthenticatorLogField.set(federatedAuthObject, mockedLog);
+        when(mockedLog.isDebugEnabled()).thenReturn(true);
     }
 
 
@@ -414,6 +439,28 @@ public class IWAAuthenticatorTest extends PowerMockTestCase{
             Assert.fail("Response processed when authenticated user is not found in the gss token");
         } catch (AuthenticationFailedException e) {
             Assert.assertTrue(e.getMessage().contains("not found in the user store of tenant"));
+        }
+    }
+
+    @Test
+    public void testLocalIsExistingUserException() throws Exception {
+
+        initCommonMocks();
+        setMockHttpSession();
+        setMockAuthenticationContext();
+        setMockIWAAuthenticationUtil();
+        setMockUserCoreUtil();
+
+        mockSession.setAttribute(IWAConstants.KERBEROS_TOKEN, Base64.encode(token));
+        when(IWAAuthenticationUtil.processToken(any(byte[].class))).thenReturn("wso2@IS.LOCAL");
+        when(mockUserStoreManager.isExistingUser(anyString())).thenThrow(new UserStoreException());
+
+        try {
+            iwaLocalAuthenticator.processAuthenticationResponse(
+                    mockHttpRequest, mockHttpResponse, mockAuthenticationContext);
+            Assert.fail("Response processed with user store exception");
+        } catch (AuthenticationFailedException e) {
+            Assert.assertTrue(e.getMessage().contains("IWALocalAuthenticator failed to find the user in the userstore"));
         }
     }
 
@@ -602,6 +649,79 @@ public class IWAAuthenticatorTest extends PowerMockTestCase{
                     mockHttpRequest, mockHttpResponse, mockAuthenticationContext);
         } catch (AuthenticationFailedException e) {
             Assert.assertTrue(e.getMessage().contains("not found in the user store of tenant "));
+        }
+    }
+
+
+
+    @Test
+    public void testIsExistingUserException() throws Exception {
+
+        initCommonMocks();
+        setMockHttpSession();
+        setMockIWAAuthenticationUtil();
+        setMockAuthenticationContext();
+
+        Map<String, String> map = new HashMap<>();
+        map.put(SPN_NAME, SPN_NAME_VALUE);
+        map.put(SPN_PASSWORD, SPN_PASSWORD_VALUE);
+        map.put(USER_STORE_DOMAINS, USER_STORE_DOMAINS_VALUE);
+
+        when(mockAuthenticationContext.getAuthenticatorProperties()).thenReturn(map);
+        mockSession.setAttribute(IWAConstants.KERBEROS_TOKEN, Base64.encode(token));
+        when(mockHttpRequest.getSession(anyBoolean())).thenReturn(mockSession);
+        when(mockHttpRequest.getSession()).thenReturn(mockSession);
+
+        when(IWAAuthenticationUtil.createCredentials(anyString(), any(char[].class))).thenReturn(mockGSSCredential);
+        when(IWAAuthenticationUtil.processToken(
+                any(byte[].class), any(GSSCredential.class))).thenReturn("wso2@IS.LOCAL");
+
+        when(mockUserStoreManager.getSecondaryUserStoreManager(anyString())).thenReturn(mockUserStoreManager);
+        when(mockUserStoreManager.isExistingUser(anyString())).thenThrow(new UserStoreException());
+
+        try {
+            iwaFederatedAuthenticator.processAuthenticationResponse(
+                    mockHttpRequest, mockHttpResponse, mockAuthenticationContext);
+            Assert.fail("Response processed with User Store exception");
+        } catch (AuthenticationFailedException e) {
+            //expected exception
+            Assert.assertTrue(e.getMessage().contains("IWAApplicationAuthenticator failed to find the user in the userstores"));
+        }
+    }
+
+    @Test
+    public void testGetUserClaimsException() throws Exception {
+
+        initCommonMocks();
+        setMockHttpSession();
+        setMockIWAAuthenticationUtil();
+        setMockAuthenticationContext();
+
+        Map<String, String> map = new HashMap<>();
+        map.put(SPN_NAME, SPN_NAME_VALUE);
+        map.put(SPN_PASSWORD, SPN_PASSWORD_VALUE);
+        map.put(USER_STORE_DOMAINS, USER_STORE_DOMAINS_VALUE);
+
+        when(mockAuthenticationContext.getAuthenticatorProperties()).thenReturn(map);
+        mockSession.setAttribute(IWAConstants.KERBEROS_TOKEN, Base64.encode(token));
+        when(mockHttpRequest.getSession(anyBoolean())).thenReturn(mockSession);
+        when(mockHttpRequest.getSession()).thenReturn(mockSession);
+
+        when(IWAAuthenticationUtil.createCredentials(anyString(), any(char[].class))).thenReturn(mockGSSCredential);
+        when(IWAAuthenticationUtil.processToken(
+                any(byte[].class), any(GSSCredential.class))).thenReturn("wso2@IS.LOCAL");
+
+        when(mockUserStoreManager.getSecondaryUserStoreManager(anyString())).thenReturn(mockUserStoreManager);
+        when(mockUserStoreManager.isExistingUser(anyString())).thenReturn(true);
+        when(mockUserStoreManager.getUserClaimValues(anyString(), anyString())).thenThrow(new UserStoreException());
+
+        try {
+            iwaFederatedAuthenticator.processAuthenticationResponse(
+                    mockHttpRequest, mockHttpResponse, mockAuthenticationContext);
+            Assert.fail("Response processed with User Store exception");
+        } catch (AuthenticationFailedException e) {
+            //expected exception
+            Assert.assertTrue(e.getMessage().contains("IWAApplicationAuthenticator failed to get user claims"));
         }
     }
 }

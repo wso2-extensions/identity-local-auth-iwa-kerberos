@@ -128,7 +128,7 @@ public class IWAAuthenticationUtil {
 
         if (log.isDebugEnabled()) {
             log.debug("Kerberos jaas.conf file path set to : " + jaasConfigPath);
-            log.debug("Kerberos krb5.conf file path set to : " + jaasConfigPath);
+            log.debug("Kerberos krb5.conf file path set to : " + krb5ConfigPath);
         }
 
     }

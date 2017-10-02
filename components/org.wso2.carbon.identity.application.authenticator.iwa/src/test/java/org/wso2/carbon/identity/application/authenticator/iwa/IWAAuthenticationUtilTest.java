@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2017, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,7 +17,10 @@
  */
 package org.wso2.carbon.identity.application.authenticator.iwa;
 
+import org.apache.commons.logging.Log;
+import org.ietf.jgss.GSSContext;
 import org.ietf.jgss.GSSCredential;
+import org.ietf.jgss.GSSName;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -29,8 +32,12 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import org.wso2.carbon.user.core.claim.Claim;
+import sun.security.jgss.GSSManagerImpl;
 
 import java.io.File;
+import java.lang.reflect.Field;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
@@ -46,6 +53,7 @@ public class IWAAuthenticationUtilTest extends PowerMockTestCase {
     private static final String USERNAME_ATTRIBUTE_NAME = "username";
     private static final String JAAS_CONFIG_PATH = "src/test/resources/home/repository/conf/identity/jaas.conf";
     private static final String KERBEROS_CONFIG_PATH = "src/test/resources/home/repository/conf/identity/krb5.conf";
+    private static final String TOKEN_PATH = "src/test/resources/home/repository/conf/identity/token";
 
     private String fullQualifiedUsername;
     private String password;
@@ -57,10 +65,26 @@ public class IWAAuthenticationUtilTest extends PowerMockTestCase {
     @Mock
     HttpSession mockSession;
 
+    @Mock
+    Log mockedLog;
+
+    @Mock
+    GSSManagerImpl mockedGSSManager;
+
+    @Mock
+    GSSContext mockedGSSContext;
+
+    @Mock
+    GSSName mockedGSSName;
+
     private GSSCredential gssCredentials;
+
+    private String loggedMessage;
 
     @InjectMocks
     private IWAAuthenticationUtil util;
+    private byte[] token;
+    Object utilObject;
 
     @BeforeMethod
     public void setUp() throws Exception {
@@ -70,9 +94,14 @@ public class IWAAuthenticationUtilTest extends PowerMockTestCase {
         fullQualifiedUsername = "wso2@IS.LOCAL";
         password = "Boow123#";
         passwordArray = password.toCharArray();
+        token = Files.readAllBytes(Paths.get(TOKEN_PATH));
 
         System.setProperty("carbon.home", new File("src/test/resources/home").getAbsolutePath());
         setMockHttpSession();
+
+        Class<?> clazz = IWAAuthenticationUtil.class;
+        utilObject = clazz.newInstance();
+        setMockedLog(utilObject);
     }
 
     public void setMockHttpSession() {
@@ -104,6 +133,39 @@ public class IWAAuthenticationUtilTest extends PowerMockTestCase {
                 return null;
             }
         }).when(mockSession).invalidate();
+    }
+
+    public void setMockedLog(Object utilObject) throws Exception {
+
+        Field logField = utilObject.getClass().getDeclaredField("log");
+        logField.setAccessible(true);
+        logField.set(utilObject, mockedLog);
+
+        when(mockedLog.isDebugEnabled()).thenReturn(true);
+        doAnswer(new Answer<Object>(){
+            @Override
+            public Object answer(InvocationOnMock invocation) throws Throwable {
+                loggedMessage = (String) invocation.getArguments()[0];
+                return null;
+            }
+        }).when(mockedLog).error(anyString());
+
+        doAnswer(new Answer<Object>(){
+            @Override
+            public Object answer(InvocationOnMock invocation) throws Throwable {
+                loggedMessage = (String) invocation.getArguments()[0];
+                return null;
+            }
+        }).when(mockedLog).debug(anyString());
+    }
+
+    public void setMockedGSSManager(Object utilObject) throws Exception {
+
+        Field gssManagerField = utilObject.getClass().getDeclaredField("gssManager");
+        gssManagerField.setAccessible(true);
+        gssManagerField.set(utilObject, mockedGSSManager);
+
+        when(mockedGSSManager.createContext(any(GSSCredential.class))).thenReturn(mockedGSSContext);
     }
 
     @Test
@@ -176,8 +238,11 @@ public class IWAAuthenticationUtilTest extends PowerMockTestCase {
     public void testConfiguration() {
 
         IWAAuthenticationUtil.setConfigFilePaths();
-        Assert.assertNotNull(System.getProperty(IWAConstants.JAAS_CONFIG_PROPERTY), "JAAS config property not set");
-        Assert.assertNotNull(System.getProperty(IWAConstants.KERBEROS_CONFIG_PROPERTY), "Kerberos config property not set");
+        String jaasPath = System.getProperty(IWAConstants.JAAS_CONFIG_PROPERTY);
+        String krb5Path = System.getProperty(IWAConstants.KERBEROS_CONFIG_PROPERTY);
+
+        Assert.assertNotNull(jaasPath, "JAAS config property not set");
+        Assert.assertNotNull(krb5Path, "Kerberos config property not set");
     }
 
     @Test
@@ -218,8 +283,33 @@ public class IWAAuthenticationUtilTest extends PowerMockTestCase {
 
         gssCredentials = IWAAuthenticationUtil.createCredentials(fullQualifiedUsername, passwordArray);
         Assert.assertEquals(gssCredentials.getRemainingLifetime(), GSSCredential.INDEFINITE_LIFETIME);
-        Assert.assertEquals(gssCredentials.ACCEPT_ONLY, 2);
+        Assert.assertEquals(gssCredentials.getUsage(), 2);
 
+    }
+
+    @DataProvider (name = "provideContextEstablishedData")
+    public Object[][] provideContextEstablishedData() {
+
+        return new Object[][] {
+                { true, "wso2@IS.LOCAL" },
+                { false, "Unable to decrypt the kerberos ticket as context was not established" }
+        };
+    }
+
+    @Test (dataProvider = "provideContextEstablishedData")
+    public void testProcessTokenError(boolean isEstablished, String log) throws Exception {
+
+        setMockedGSSManager(utilObject);
+        when(mockedGSSContext.isEstablished()).thenReturn(isEstablished);
+        when(mockedGSSContext.getSrcName()).thenReturn(mockedGSSName);
+        when(mockedGSSContext.getTargName()).thenReturn(mockedGSSName);
+        when(mockedGSSName.toString()).thenReturn("wso2@IS.LOCAL");
+        String loginUsername = IWAAuthenticationUtil.processToken(token);
+        Assert.assertTrue(loggedMessage.contains(log));
+
+        if (isEstablished) {
+            Assert.assertEquals(loginUsername, "wso2@IS.LOCAL");
+        }
     }
 
 }

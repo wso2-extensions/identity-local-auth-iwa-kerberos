@@ -20,6 +20,7 @@ package org.wso2.carbon.identity.application.authenticator.iwa;
 import org.apache.commons.logging.Log;
 import org.ietf.jgss.GSSContext;
 import org.ietf.jgss.GSSCredential;
+import org.ietf.jgss.GSSManager;
 import org.ietf.jgss.GSSName;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -28,6 +29,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.powermock.modules.testng.PowerMockTestCase;
 import org.testng.Assert;
+import org.testng.annotations.AfterTest;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -104,6 +106,11 @@ public class IWAAuthenticationUtilTest extends PowerMockTestCase {
         setMockedLog(utilObject);
     }
 
+    @AfterTest
+    public void cleanUp() throws Exception {
+        unSetMockedGSSManager(utilObject);
+    }
+
     public void setMockHttpSession() {
 
         final Map<String,Object> attributes = new HashMap<>();
@@ -166,6 +173,12 @@ public class IWAAuthenticationUtilTest extends PowerMockTestCase {
         gssManagerField.set(utilObject, mockedGSSManager);
 
         when(mockedGSSManager.createContext(any(GSSCredential.class))).thenReturn(mockedGSSContext);
+    }
+
+    public void unSetMockedGSSManager(Object utilObject) throws Exception {
+        Field gssManagerField = utilObject.getClass().getDeclaredField("gssManager");
+        gssManagerField.setAccessible(true);
+        gssManagerField.set(utilObject, GSSManager.getInstance());
     }
 
     @Test

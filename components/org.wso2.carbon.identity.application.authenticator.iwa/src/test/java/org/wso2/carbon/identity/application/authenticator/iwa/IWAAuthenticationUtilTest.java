@@ -17,7 +17,6 @@
  */
 package org.wso2.carbon.identity.application.authenticator.iwa;
 
-import org.apache.commons.logging.Log;
 import org.ietf.jgss.GSSContext;
 import org.ietf.jgss.GSSCredential;
 import org.ietf.jgss.GSSManager;
@@ -27,12 +26,12 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-import org.powermock.modules.testng.PowerMockTestCase;
 import org.testng.Assert;
 import org.testng.annotations.AfterTest;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
+import org.wso2.carbon.identity.testutil.powermock.PowerMockIdentityBaseTest;
 import org.wso2.carbon.user.core.claim.Claim;
 import sun.security.jgss.GSSManagerImpl;
 
@@ -50,7 +49,7 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.powermock.api.mockito.PowerMockito.when;
 
-public class IWAAuthenticationUtilTest extends PowerMockTestCase {
+public class IWAAuthenticationUtilTest extends PowerMockIdentityBaseTest {
 
     private static final String USERNAME_ATTRIBUTE_NAME = "username";
     private static final String JAAS_CONFIG_PATH = "src/test/resources/home/repository/conf/identity/jaas.conf";
@@ -68,9 +67,6 @@ public class IWAAuthenticationUtilTest extends PowerMockTestCase {
     HttpSession mockSession;
 
     @Mock
-    Log mockedLog;
-
-    @Mock
     GSSManagerImpl mockedGSSManager;
 
     @Mock
@@ -80,8 +76,6 @@ public class IWAAuthenticationUtilTest extends PowerMockTestCase {
     GSSName mockedGSSName;
 
     private GSSCredential gssCredentials;
-
-    private String loggedMessage;
 
     @InjectMocks
     private IWAAuthenticationUtil util;
@@ -103,7 +97,6 @@ public class IWAAuthenticationUtilTest extends PowerMockTestCase {
 
         Class<?> clazz = IWAAuthenticationUtil.class;
         utilObject = clazz.newInstance();
-        setMockedLog(utilObject);
     }
 
     @AfterTest
@@ -140,30 +133,6 @@ public class IWAAuthenticationUtilTest extends PowerMockTestCase {
                 return null;
             }
         }).when(mockSession).invalidate();
-    }
-
-    public void setMockedLog(Object utilObject) throws Exception {
-
-        Field logField = utilObject.getClass().getDeclaredField("log");
-        logField.setAccessible(true);
-        logField.set(utilObject, mockedLog);
-
-        when(mockedLog.isDebugEnabled()).thenReturn(true);
-        doAnswer(new Answer<Object>(){
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                loggedMessage = (String) invocation.getArguments()[0];
-                return null;
-            }
-        }).when(mockedLog).error(anyString());
-
-        doAnswer(new Answer<Object>(){
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                loggedMessage = (String) invocation.getArguments()[0];
-                return null;
-            }
-        }).when(mockedLog).debug(anyString());
     }
 
     public void setMockedGSSManager(Object utilObject) throws Exception {
@@ -318,8 +287,6 @@ public class IWAAuthenticationUtilTest extends PowerMockTestCase {
         when(mockedGSSContext.getTargName()).thenReturn(mockedGSSName);
         when(mockedGSSName.toString()).thenReturn("wso2@IS.LOCAL");
         String loginUsername = IWAAuthenticationUtil.processToken(token);
-        Assert.assertTrue(loggedMessage.contains(log));
-
         if (isEstablished) {
             Assert.assertEquals(loginUsername, "wso2@IS.LOCAL");
         }

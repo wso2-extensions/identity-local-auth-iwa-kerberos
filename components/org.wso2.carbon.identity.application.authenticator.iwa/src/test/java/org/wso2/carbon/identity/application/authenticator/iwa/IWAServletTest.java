@@ -17,20 +17,19 @@
  */
 package org.wso2.carbon.identity.application.authenticator.iwa;
 
-import org.apache.commons.logging.Log;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.testng.PowerMockTestCase;
 import org.testng.Assert;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import org.wso2.carbon.identity.application.authenticator.iwa.servlet.IWAServlet;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
+import org.wso2.carbon.identity.testutil.powermock.PowerMockIdentityBaseTest;
 
 import java.lang.reflect.Field;
 import java.util.HashMap;
@@ -49,7 +48,7 @@ import static org.powermock.api.mockito.PowerMockito.mockStatic;
 import static org.powermock.api.mockito.PowerMockito.when;
 
 @PrepareForTest ( {IdentityUtil.class})
-public class IWAServletTest extends PowerMockTestCase {
+public class IWAServletTest extends PowerMockIdentityBaseTest {
 
     private static final String NTLM_PROLOG = "TlRMTVNT";
     private static final String COMMON_AUTH_URL = "https://localhost:9443/commonauth";
@@ -64,11 +63,7 @@ public class IWAServletTest extends PowerMockTestCase {
     @Mock
     HttpSession mockedHttpSession;
 
-    @Mock
-    Log mockedLog;
-
     private ExtendedIWAServlet iwaServlet;
-    private String loggedMessage;
 
     class ExtendedIWAServlet extends IWAServlet {
 
@@ -160,12 +155,6 @@ public class IWAServletTest extends PowerMockTestCase {
             } else {
                 Assert.assertEquals(redirectUrl[0], REDIRECT_URL);
             }
-
-            if (loggedMessage != null) {
-                Assert.assertTrue(loggedMessage.contains(message));
-            }
-
-            loggedMessage = null;
         } catch (ServletException e) {
             Assert.assertTrue(e.getMessage().contains(message), "Expected error message not found");
         } catch (RuntimeException e) {
@@ -181,24 +170,6 @@ public class IWAServletTest extends PowerMockTestCase {
 
         Field logField = iwaServletObject.getClass().getDeclaredField("log");
         logField.setAccessible(true);
-        logField.set(iwaServletObject, mockedLog);
-
-        when(mockedLog.isDebugEnabled()).thenReturn(true);
-        doAnswer(new Answer<Object>(){
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                loggedMessage = (String) invocation.getArguments()[0];
-                return null;
-            }
-        }).when(mockedLog).error(anyString());
-
-        doAnswer(new Answer<Object>(){
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                loggedMessage = (String) invocation.getArguments()[0];
-                return null;
-            }
-        }).when(mockedLog).debug(anyString());
     }
 }
 

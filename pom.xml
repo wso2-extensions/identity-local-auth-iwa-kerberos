@@ -148,6 +148,20 @@
                 <groupId>org.wso2.carbon.identity.framework</groupId>
                 <artifactId>org.wso2.carbon.identity.application.authentication.framework</artifactId>
                 <version>${carbon.identity.framework.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-api</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>jcl-over-slf4j</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>log4j-over-slf4j</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.wso2.carbon.identity.framework</groupId>
@@ -190,7 +204,12 @@
                 <artifactId>powermock-module-testng</artifactId>
                 <version>${powermock.version}</version>
             </dependency>
-
+            <dependency>
+                <groupId>org.wso2.carbon.identity.framework</groupId>
+                <artifactId>org.wso2.carbon.identity.testutil</artifactId>
+                <version>${org.wso2.carbon.identity.testutil.version}</version>
+                <scope>test</scope>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -308,7 +327,7 @@
         <slf4j.api.version>1.7.12</slf4j.api.version>
         <mockito.version>1.10.19</mockito.version>
         <powermock.version>1.6.6</powermock.version>
-
+        <org.wso2.carbon.identity.testutil.version>5.10.0</org.wso2.carbon.identity.testutil.version>
     </properties>
 
 </project>

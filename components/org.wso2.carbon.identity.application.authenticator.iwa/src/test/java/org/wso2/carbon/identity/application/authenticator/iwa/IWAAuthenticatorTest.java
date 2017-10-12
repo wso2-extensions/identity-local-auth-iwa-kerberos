@@ -19,15 +19,12 @@ package org.wso2.carbon.identity.application.authenticator.iwa;
 
 import org.apache.axiom.om.util.Base64;
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.logging.Log;
 import org.ietf.jgss.GSSCredential;
 import org.ietf.jgss.GSSException;
 import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.testng.PowerMockTestCase;
 import org.testng.Assert;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.DataProvider;
@@ -38,6 +35,7 @@ import org.wso2.carbon.identity.application.authentication.framework.model.Authe
 import org.wso2.carbon.identity.application.authenticator.iwa.internal.IWAServiceDataHolder;
 import org.wso2.carbon.identity.application.common.model.Property;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
+import org.wso2.carbon.identity.testutil.powermock.PowerMockIdentityBaseTest;
 import org.wso2.carbon.user.core.UserRealm;
 import org.wso2.carbon.user.core.UserStoreException;
 import org.wso2.carbon.user.core.UserStoreManager;
@@ -67,8 +65,7 @@ import static org.powermock.api.mockito.PowerMockito.mockStatic;
 import static org.powermock.api.mockito.PowerMockito.when;
 
 @PrepareForTest({IdentityUtil.class, IWAAuthenticationUtil.class, UserCoreUtil.class})
-@PowerMockIgnore("org.ietf.jgss.*")
-public class IWAAuthenticatorTest extends PowerMockTestCase{
+public class IWAAuthenticatorTest extends PowerMockIdentityBaseTest {
 
     private static final String IWA_LOCAL_AUTHENTICATOR_NAME = "IWALocalAuthenticator";
     private static final String IWA_LOCAL_AUTHENTICATOR_FRIENDLY_NAME = "iwa-local";
@@ -114,9 +111,6 @@ public class IWAAuthenticatorTest extends PowerMockTestCase{
 
     @Mock
     GSSCredential mockGSSCredential;
-
-    @Mock
-    Log mockedLog;
 
     private AbstractIWAAuthenticator iwaLocalAuthenticator;
     private AbstractIWAAuthenticator iwaFederatedAuthenticator;
@@ -254,7 +248,6 @@ public class IWAAuthenticatorTest extends PowerMockTestCase{
         Object localAuthObject = clazz1.newInstance();
         Field localAuthenticatorLogField = localAuthObject.getClass().getDeclaredField("log");
         localAuthenticatorLogField.setAccessible(true);
-        localAuthenticatorLogField.set(localAuthObject, mockedLog);
 
         Class<?> clazz2 = IWAFederatedAuthenticator.class;
         Object federatedAuthObject = clazz2.newInstance();
@@ -265,8 +258,6 @@ public class IWAAuthenticatorTest extends PowerMockTestCase{
         modifiersField.setInt(federatedAuthenticatorLogField, federatedAuthenticatorLogField.getModifiers() & ~Modifier.FINAL);
 
         federatedAuthenticatorLogField.setAccessible(true);
-        federatedAuthenticatorLogField.set(federatedAuthObject, mockedLog);
-        when(mockedLog.isDebugEnabled()).thenReturn(true);
     }
 
 

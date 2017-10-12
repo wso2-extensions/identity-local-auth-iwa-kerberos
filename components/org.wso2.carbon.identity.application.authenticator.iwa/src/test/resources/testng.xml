@@ -18,7 +18,19 @@
 <!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd" >
 
 <suite name="Local-Auth-IWA-Kerberos-Test-Suite">
-    <test name="Util-Tests" preserve-order="true" parallel="false">
+    <test name="Util-Tests-with-debug-logs" preserve-order="true" parallel="false">
+        <parameter name="log-level" value="debug"/>
+        <classes>
+            <class name="org.wso2.carbon.identity.application.authenticator.iwa.IWAAuthenticationUtilTest" />
+            <class name="org.wso2.carbon.identity.application.authenticator.iwa.IWAAuthenticatorTest" />
+            <class name="org.wso2.carbon.identity.application.authenticator.iwa.IWAServiceDataHolderTest" />
+            <class name="org.wso2.carbon.identity.application.authenticator.iwa.IWAAuthenticatorServiceComponentTest" />
+            <class name="org.wso2.carbon.identity.application.authenticator.iwa.IWAServletTest" />
+        </classes>
+    </test>
+
+    <test name="Util-Tests-with-info-logs" preserve-order="true" parallel="false">
+        <parameter name="log-level" value="info"/>
         <classes>
             <class name="org.wso2.carbon.identity.application.authenticator.iwa.IWAAuthenticationUtilTest" />
             <class name="org.wso2.carbon.identity.application.authenticator.iwa.IWAAuthenticatorTest" />

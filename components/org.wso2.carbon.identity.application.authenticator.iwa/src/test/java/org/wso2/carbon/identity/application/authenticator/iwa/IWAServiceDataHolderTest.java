@@ -25,9 +25,10 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 import org.wso2.carbon.identity.application.authenticator.iwa.internal.IWAServiceDataHolder;
+import org.wso2.carbon.identity.testutil.IdentityBaseTest;
 import org.wso2.carbon.user.core.service.RealmService;
 
-public class IWAServiceDataHolderTest {
+public class IWAServiceDataHolderTest extends IdentityBaseTest{
 
     @Mock
     HttpService mockedHttpService;
@@ -79,7 +80,7 @@ public class IWAServiceDataHolderTest {
         Assert.assertEquals(dataHolder.getRealmService(), mockedRealmService);
     }
 
-    @Test (expectedExceptions = RuntimeException.class)
+    @Test(expectedExceptions = RuntimeException.class)
     public void testGetRealmServiceException() {
 
         dataHolder.setRealmService(null);

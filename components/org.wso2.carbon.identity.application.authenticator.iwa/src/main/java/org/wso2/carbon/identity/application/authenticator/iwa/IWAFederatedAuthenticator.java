@@ -112,7 +112,7 @@ public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implemen
 
         if (StringUtils.isEmpty(userStoreDomain)) {
             context.setSubject(
-                    AuthenticatedUser.createFederateAuthenticatedUserFromSubjectIdentifier(authenticatedUserName));
+                    AuthenticatedUser.createFederateAuthenticatedUserFromSubjectIdentifier(fullyQualifiedName));
         } else {
 
 

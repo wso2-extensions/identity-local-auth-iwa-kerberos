@@ -63,20 +63,21 @@ public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implemen
     protected void processAuthenticationResponse(HttpServletRequest request, HttpServletResponse response,
                                                  AuthenticationContext context) throws AuthenticationFailedException {
         super.processAuthenticationResponse(request, response, context);
-        IWAAuthenticatedUserBean iWAAuthenticatedUserBean;
+        IWAAuthenticatedUserBean iwaAuthenticatedUserBean;
         HttpSession session = request.getSession(false);
         final String gssToken = (String) session.getAttribute(IWAConstants.KERBEROS_TOKEN);
         IWAAuthenticationUtil.invalidateSession(request);
 
         Map authenticatorProperties = context.getAuthenticatorProperties();
         GSSCredential gssCredential;
-        String userStoreDomain;
+        String userStoreDomains;
         try {
             // Service Principal Name : an identifier representing IS registered at the Kerberos Server, this can
             // sometimes be the service account of the IS at the Kerberos Server
             String spnName = (String) authenticatorProperties.get(IWAConstants.SPN_NAME);
 
-            userStoreDomain = (String) authenticatorProperties.get(IWAConstants.USER_STORE_DOMAINS);
+            // User store domains in which we need to check whether the authenicated user in Kerberos ticket exists in
+            userStoreDomains = (String) authenticatorProperties.get(IWAConstants.USER_STORE_DOMAINS);
 
             // Password of the service account of IS at the Kerberos Server
             char[] spnPassword = authenticatorProperties.get(IWAConstants.SPN_PASSWORD).toString().toCharArray();
@@ -103,42 +104,35 @@ public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implemen
         String fullyQualifiedName = getAuthenticatedUserFromToken(gssCredential, Base64.decode(gssToken));
         String authenticatedUserName = IWAAuthenticationUtil.getDomainAwareUserName(fullyQualifiedName);
 
-        // authenticatedUserName = userstoredomain + "/" + username + "@" + tenantDomain
-        // authenticatedUserName = username
-
         if (log.isDebugEnabled()) {
             log.debug("Authenticated Federated User : " + authenticatedUserName);
         }
 
-        if (StringUtils.isEmpty(userStoreDomain)) {
+        if (StringUtils.isEmpty(userStoreDomains)) {
+            // No UserStoreDomain values were set in the UI, so we don't have to check for existence of user in
+            // user stores. ie. we will consider this user as a federated one.
             context.setSubject(
                     AuthenticatedUser.createFederateAuthenticatedUserFromSubjectIdentifier(authenticatedUserName));
         } else {
+            // We need to check the user's existence in specified user store domains
+            iwaAuthenticatedUserBean = userInformationInListedUserStores(authenticatedUserName,
+                    context.getTenantDomain(), userStoreDomains);
 
-
-            iWAAuthenticatedUserBean = userInformationInListedUserStores(authenticatedUserName,
-                    context.getTenantDomain(), userStoreDomain);
-
-
-            if (!iWAAuthenticatedUserBean.isUserExists()) {
-                String msg = "User " + authenticatedUserName + "not found in the user store of tenant "
-                        + userStoreDomain;
-                throw new AuthenticationFailedException("Authentication Failed, " + msg);
+            if (!iwaAuthenticatedUserBean.isUserExists()) {
+                String msg = "User: %s not found in any of specified userstores: %s of tenant: %s.";
+                throw new AuthenticationFailedException("Authentication Failed, " +
+                        String.format(msg, authenticatedUserName, userStoreDomains, context.getTenantDomain()));
             }
+
             //Creates local authenticated user since this refer available user stores for user.
-
             AuthenticatedUser authenticatedUser = new AuthenticatedUser();
-            authenticatedUser.setUserName(iWAAuthenticatedUserBean.getUser());
-            authenticatedUser.setUserStoreDomain(iWAAuthenticatedUserBean.getUserStoreDomain());
-            authenticatedUser.setTenantDomain(MultitenantUtils.getTenantDomain(iWAAuthenticatedUserBean.getTenantDomain()));
-
-            authenticatedUser.setAuthenticatedSubjectIdentifier(iWAAuthenticatedUserBean.getUser());
-
+            authenticatedUser.setUserName(iwaAuthenticatedUserBean.getUser());
+            authenticatedUser.setUserStoreDomain(iwaAuthenticatedUserBean.getUserStoreDomain());
+            authenticatedUser.setTenantDomain(MultitenantUtils.getTenantDomain(iwaAuthenticatedUserBean.getTenantDomain()));
+            authenticatedUser.setAuthenticatedSubjectIdentifier(iwaAuthenticatedUserBean.getUser());
             authenticatedUser.setUserAttributes(
-                    IWAAuthenticationUtil.buildClaimMappingMap(getUserClaims(iWAAuthenticatedUserBean)));
-
+                    IWAAuthenticationUtil.buildClaimMappingMap(getUserClaims(iwaAuthenticatedUserBean)));
             context.setSubject(authenticatedUser);
-
         }
     }
 
@@ -186,12 +180,19 @@ public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implemen
     }
 
 
+
     private String getAuthenticatedUserFromToken(GSSCredential gssCredentials, byte[] gssToken)
             throws AuthenticationFailedException {
         try {
-            return IWAAuthenticationUtil.processToken(gssToken, gssCredentials);
+            String extractedUserFromTicket = IWAAuthenticationUtil.processToken(gssToken, gssCredentials);
+            if (StringUtils.isNotBlank(extractedUserFromTicket)) {
+                return extractedUserFromTicket;
+            } else {
+                // This means the authenticated user information was not found from decrypting the Kerberos Token.
+                throw new AuthenticationFailedException("Unable to extract authenticated user from Kerberos Token.");
+            }
         } catch (GSSException e) {
-            throw new AuthenticationFailedException("Error processing the GSS Token", e);
+            throw new AuthenticationFailedException("Error while processing the GSS Token.", e);
         }
     }
 
@@ -204,8 +205,11 @@ public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implemen
      * @return
      * @throws AuthenticationFailedException
      */
-    private IWAAuthenticatedUserBean userInformationInListedUserStores(String authenticatedUserName, String
-            tenantDomain, String userStoreDomains) throws AuthenticationFailedException {
+    private IWAAuthenticatedUserBean userInformationInListedUserStores(String authenticatedUserName,
+                                                                       String tenantDomain,
+                                                                       String userStoreDomains)
+            throws AuthenticationFailedException {
+
         boolean isUserExists = false;
         String userStoreDomainForUser = null;
         IWAAuthenticatedUserBean authenticatedUserBean = new IWAAuthenticatedUserBean();
@@ -224,8 +228,10 @@ public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implemen
             return authenticatedUserBean;
 
         } catch (AuthenticationFailedException e) {
-            throw new AuthenticationFailedException("IWAApplicationAuthenticator failed to find the user in the " +
-                    "userstores", e);
+            String msg = "IWAApplicationAuthenticator failed to find the user:%s of tenantDomain=%s in neither one of" +
+                    " userstore domains:%s";
+            throw new AuthenticationFailedException(
+                    String.format(msg, authenticatedUserName, tenantDomain, userStoreDomains), e);
         }
     }
 

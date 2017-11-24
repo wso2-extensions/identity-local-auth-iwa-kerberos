@@ -327,7 +327,7 @@
         <slf4j.api.version>1.7.12</slf4j.api.version>
         <mockito.version>1.10.19</mockito.version>
         <powermock.version>1.6.6</powermock.version>
-        <org.wso2.carbon.identity.testutil.version>5.10.0</org.wso2.carbon.identity.testutil.version>
+        <org.wso2.carbon.identity.testutil.version>5.10.51</org.wso2.carbon.identity.testutil.version>
     </properties>
 
 </project>

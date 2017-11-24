@@ -24,6 +24,7 @@ import org.ietf.jgss.GSSException;
 import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.testng.Assert;
 import org.testng.annotations.BeforeTest;
@@ -65,6 +66,7 @@ import static org.powermock.api.mockito.PowerMockito.mockStatic;
 import static org.powermock.api.mockito.PowerMockito.when;
 
 @PrepareForTest({IdentityUtil.class, IWAAuthenticationUtil.class, UserCoreUtil.class})
+@PowerMockIgnore("org.ietf.*")
 public class IWAAuthenticatorTest extends PowerMockIdentityBaseTest {
 
     private static final String IWA_LOCAL_AUTHENTICATOR_NAME = "IWALocalAuthenticator";
@@ -386,7 +388,8 @@ public class IWAAuthenticatorTest extends PowerMockIdentityBaseTest {
                     mockHttpRequest, mockHttpResponse, mockAuthenticationContext);
             Assert.fail("Response processed with invalid kerberos token");
         } catch (AuthenticationFailedException e) {
-            Assert.assertTrue(e.getMessage().contains("Error extracting username from the GSS Token"));
+            Assert.assertTrue(e.getMessage().contains("Error while processing the GSS Token"),
+                    "Exception message has changed or exception thrown from an unintended code segment.");
         }
     }
 
@@ -407,7 +410,8 @@ public class IWAAuthenticatorTest extends PowerMockIdentityBaseTest {
                     mockHttpRequest, mockHttpResponse, mockAuthenticationContext);
             Assert.fail("Response processed when authenticated user is not found in the gss token");
         } catch (AuthenticationFailedException e) {
-            Assert.assertTrue(e.getMessage().contains("Authenticated user not found in GSS Token"));
+            Assert.assertTrue(e.getMessage().contains("Unable to extract authenticated user from Kerberos Token"),
+                    "Exception message has changed or exception thrown from an unintended code segment.");
         }
     }
 
@@ -639,7 +643,8 @@ public class IWAAuthenticatorTest extends PowerMockIdentityBaseTest {
             iwaFederatedAuthenticator.processAuthenticationResponse(
                     mockHttpRequest, mockHttpResponse, mockAuthenticationContext);
         } catch (AuthenticationFailedException e) {
-            Assert.assertTrue(e.getMessage().contains("not found in the user store of tenant "));
+            Assert.assertTrue(e.getMessage().contains("not found in any of specified userstores"),
+                    "Exception message has changed or exception thrown from an unintended code segment.");
         }
     }
 
@@ -676,7 +681,8 @@ public class IWAAuthenticatorTest extends PowerMockIdentityBaseTest {
             Assert.fail("Response processed with User Store exception");
         } catch (AuthenticationFailedException e) {
             //expected exception
-            Assert.assertTrue(e.getMessage().contains("IWAApplicationAuthenticator failed to find the user in the userstores"));
+            Assert.assertTrue(e.getMessage().contains("failed to find the user"),
+                    "Exception message has changed or exception thrown from an unintended code segment.");
         }
     }
 

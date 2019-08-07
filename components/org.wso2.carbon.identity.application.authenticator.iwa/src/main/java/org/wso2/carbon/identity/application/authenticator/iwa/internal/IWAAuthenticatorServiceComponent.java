@@ -34,7 +34,7 @@ import javax.servlet.ServletException;
 
 
 /**
- * @scr.component name="identity.application.authenticator.basicauth.component" immediate="true"
+ * @scr.component name="identity.application.authenticator.iwa.component" immediate="true"
  * @scr.reference name="osgi.httpservice" interface="org.osgi.service.http.HttpService"
  * cardinality="1..1" policy="dynamic" bind="setHttpService"
  * unbind="unsetHttpService"

@@ -29,7 +29,7 @@ public class IWAServiceDataHolder {
 
     private HttpService httpService;
     private RealmService realmService;
-    private static Log log = LogFactory.getLog(IWAServiceDataHolder.class);
+    private static final Log log = LogFactory.getLog(IWAServiceDataHolder.class);
 
     private static IWAServiceDataHolder instance = new IWAServiceDataHolder();
 

@@ -37,7 +37,7 @@ import javax.servlet.http.HttpSession;
 public abstract class AbstractIWAAuthenticator extends AbstractApplicationAuthenticator {
 
     private static final long serialVersionUID = -713445365980141169L;
-    private static Log log = LogFactory.getLog(AbstractIWAAuthenticator.class);
+    private static final Log log = LogFactory.getLog(AbstractIWAAuthenticator.class);
 
     @Override
     protected void processAuthenticationResponse(HttpServletRequest request, HttpServletResponse response,

@@ -40,7 +40,7 @@ import javax.servlet.http.HttpSession;
 
 public class IWAServlet extends HttpServlet {
     static final long serialVersionUID = 1L;
-    private static Log log = LogFactory.getLog(IWAServlet.class);
+    private static final Log log = LogFactory.getLog(IWAServlet.class);
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {

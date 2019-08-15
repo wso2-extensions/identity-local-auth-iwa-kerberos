@@ -60,7 +60,7 @@ public class IWAAuthenticationUtil {
     private static transient GSSCredential localIWACredentials;
     private static transient KerberosPrincipal serverPrincipal;
 
-    private static Log log = LogFactory.getLog(IWAAuthenticationUtil.class);
+    private static final Log log = LogFactory.getLog(IWAAuthenticationUtil.class);
 
 
     /**

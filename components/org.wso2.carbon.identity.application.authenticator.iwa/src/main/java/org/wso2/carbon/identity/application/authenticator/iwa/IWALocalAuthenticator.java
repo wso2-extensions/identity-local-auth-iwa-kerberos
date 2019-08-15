@@ -52,7 +52,7 @@ public class IWALocalAuthenticator extends AbstractIWAAuthenticator implements
 
     //the following param of the request will be set once the request is processed by the IWAServlet
     private static final long serialVersionUID = -713445365110141399L;
-    private static Log log = LogFactory.getLog(IWALocalAuthenticator.class);
+    private static final Log log = LogFactory.getLog(IWALocalAuthenticator.class);
 
 
     @Override

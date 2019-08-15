@@ -45,7 +45,7 @@ import javax.servlet.ServletException;
  */
 public class IWAAuthenticatorServiceComponent {
 
-    private static Log log = LogFactory.getLog(IWAAuthenticatorServiceComponent.class);
+    private static final Log log = LogFactory.getLog(IWAAuthenticatorServiceComponent.class);
     private IWAServiceDataHolder dataHolder = IWAServiceDataHolder.getInstance();
 
     protected void activate(ComponentContext ctxt) {

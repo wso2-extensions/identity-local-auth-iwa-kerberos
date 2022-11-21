@@ -30,11 +30,13 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
+import org.wso2.carbon.base.MultitenantConstants;
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.application.authenticator.iwa.internal.IWAServiceDataHolder;
 import org.wso2.carbon.identity.application.common.model.Property;
+import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.identity.testutil.powermock.PowerMockIdentityBaseTest;
 import org.wso2.carbon.user.core.UserRealm;
@@ -468,6 +470,9 @@ public class IWAAuthenticatorTest extends PowerMockIdentityBaseTest {
         setMockIWAAuthenticationUtil();
         setMockUserCoreUtil();
 
+        IdentityTenantUtil.setRealmService(mockRealmService);
+        when(mockRealmService.getTenantManager().getTenantId(MultitenantConstants.SUPER_TENANT_DOMAIN_NAME))
+                .thenReturn(MultitenantConstants.SUPER_TENANT_ID);
         mockSession.setAttribute(IWAConstants.KERBEROS_TOKEN, Base64.encode(token));
         when(mockUserStoreManager.isExistingUser(anyString())).thenReturn(true);
 

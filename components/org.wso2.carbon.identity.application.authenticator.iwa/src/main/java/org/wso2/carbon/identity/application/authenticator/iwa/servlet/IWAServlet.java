@@ -23,7 +23,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.identity.application.authenticator.iwa.IWAAuthenticationUtil;
 import org.wso2.carbon.identity.application.authenticator.iwa.IWAConstants;
-import org.wso2.carbon.identity.core.util.IdentityUtil;
+import org.wso2.carbon.identity.core.ServiceURLBuilder;
+import org.wso2.carbon.identity.core.URLBuilderException;
 
 import java.io.IOException;
 import java.net.URLEncoder;
@@ -49,8 +50,15 @@ public class IWAServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        String commonAuthURL = IdentityUtil.getServerURL(IWAConstants.COMMON_AUTH_EP, false, true);
+            throws ServletException, IOException, RuntimeException {
+
+        String commonAuthURL;
+        try {
+            commonAuthURL =
+                    ServiceURLBuilder.create().addPath(IWAConstants.COMMON_AUTH_EP).build().getAbsolutePublicURL();
+        } catch (URLBuilderException e) {
+            throw new RuntimeException("Error occurred while building URL in tenant qualified mode.", e);
+        }
         String param = request.getParameter(IWAConstants.IWA_PARAM_STATE);
         if (param == null) {
             throw new IllegalArgumentException(IWAConstants.IWA_PARAM_STATE + " parameter is null.");

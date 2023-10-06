@@ -23,7 +23,8 @@ import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.identity.application.authentication.framework.AbstractApplicationAuthenticator;
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
-import org.wso2.carbon.identity.core.util.IdentityUtil;
+import org.wso2.carbon.identity.core.ServiceURLBuilder;
+import org.wso2.carbon.identity.core.URLBuilderException;
 
 import java.io.IOException;
 import java.net.URLEncoder;
@@ -76,13 +77,14 @@ public abstract class AbstractIWAAuthenticator extends AbstractApplicationAuthen
      */
     private void sendToLoginPage(HttpServletRequest request, HttpServletResponse response, String ctx)
             throws AuthenticationFailedException {
+
         String iwaURL = null;
         try {
-
-            iwaURL = IdentityUtil.getServerURL(IWAConstants.IWA_AUTH_EP, false, true) +
+            iwaURL = ServiceURLBuilder.create().addPath(IWAConstants.IWA_AUTH_EP).build().getAbsolutePublicURL() +
                     "?" + IWAConstants.IWA_PARAM_STATE + "=" + URLEncoder.encode(ctx, IWAConstants.UTF_8);
             response.sendRedirect(iwaURL);
-
+        } catch (URLBuilderException e) {
+            throw new RuntimeException("Error occurred while building URL in tenant qualified mode.", e);
         } catch (IOException e) {
             String msg = "Error when redirecting to the login page : " + iwaURL;
             throw new AuthenticationFailedException(msg, e);

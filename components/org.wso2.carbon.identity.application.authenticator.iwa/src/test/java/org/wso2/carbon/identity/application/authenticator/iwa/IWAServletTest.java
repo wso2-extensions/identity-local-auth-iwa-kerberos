@@ -28,10 +28,13 @@ import org.testng.annotations.BeforeTest;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import org.wso2.carbon.identity.application.authenticator.iwa.servlet.IWAServlet;
+import org.wso2.carbon.identity.core.ServiceURL;
+import org.wso2.carbon.identity.core.ServiceURLBuilder;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.identity.testutil.powermock.PowerMockIdentityBaseTest;
 
 import java.lang.reflect.Field;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import javax.servlet.ServletException;
@@ -47,7 +50,7 @@ import static org.powermock.api.mockito.PowerMockito.doAnswer;
 import static org.powermock.api.mockito.PowerMockito.mockStatic;
 import static org.powermock.api.mockito.PowerMockito.when;
 
-@PrepareForTest ( {IdentityUtil.class})
+@PrepareForTest ( {IdentityUtil.class, ServiceURLBuilder.class})
 public class IWAServletTest extends PowerMockIdentityBaseTest {
 
     private static final String NTLM_PROLOG = "TlRMTVNT";
@@ -62,6 +65,9 @@ public class IWAServletTest extends PowerMockIdentityBaseTest {
 
     @Mock
     HttpSession mockedHttpSession;
+
+    @Mock
+    ServiceURL serviceURL;
 
     private ExtendedIWAServlet iwaServlet;
 
@@ -105,6 +111,7 @@ public class IWAServletTest extends PowerMockIdentityBaseTest {
                            String remoteAddress, String message) throws Exception{
 
         setMockedLog();
+        mockServiceURLBuilder();
         mockStatic(IdentityUtil.class);
         when(IdentityUtil.getServerURL(anyString(), anyBoolean(), anyBoolean())).thenReturn(COMMON_AUTH_URL);
 
@@ -170,6 +177,55 @@ public class IWAServletTest extends PowerMockIdentityBaseTest {
 
         Field logField = iwaServletObject.getClass().getDeclaredField("log");
         logField.setAccessible(true);
+    }
+
+    private void mockServiceURLBuilder() {
+
+        ServiceURLBuilder builder = new ServiceURLBuilder() {
+
+            String path = "";
+
+            @Override
+            public ServiceURLBuilder addPath(String... strings) {
+
+                Arrays.stream(strings).forEach(x -> {
+                    if (x.startsWith("/")) {
+                        path += x;
+                    } else {
+                        path += "/" + x;
+                    }
+                });
+                return this;
+            }
+
+            @Override
+            public ServiceURLBuilder addParameter(String s, String s1) {
+
+                return this;
+            }
+
+            @Override
+            public ServiceURLBuilder setFragment(String s) {
+
+                return this;
+            }
+
+            @Override
+            public ServiceURLBuilder addFragmentParameter(String s, String s1) {
+
+                return this;
+            }
+
+            @Override
+            public ServiceURL build() {
+
+                when(serviceURL.getAbsolutePublicURL()).thenReturn("https://localhost:9443" + path);
+                return serviceURL;
+            }
+        };
+
+        mockStatic(ServiceURLBuilder.class);
+        when(ServiceURLBuilder.create()).thenReturn(builder);
     }
 }
 

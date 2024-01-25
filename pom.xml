@@ -279,7 +279,7 @@
         <carbon.identity.framework.version>5.25.360</carbon.identity.framework.version>
         <carbon.identity.package.export.version>${carbon.identity.framework.version}
         </carbon.identity.package.export.version>
-        <carbon.identity.package.import.version.range>[5.7.0, 7.0.0)</carbon.identity.package.import.version.range>
+        <carbon.identity.package.import.version.range>[5.7.0, 8.0.0)</carbon.identity.package.import.version.range>
 
         <project.scm.id>my-scm-server</project.scm.id>
 

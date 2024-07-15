@@ -39,6 +39,7 @@ import org.wso2.carbon.identity.core.ServiceURL;
 import org.wso2.carbon.identity.core.ServiceURLBuilder;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
+import org.wso2.carbon.identity.multi.attribute.login.mgt.MultiAttributeLoginService;
 import org.wso2.carbon.identity.testutil.powermock.PowerMockIdentityBaseTest;
 import org.wso2.carbon.user.core.UserRealm;
 import org.wso2.carbon.user.core.UserStoreException;
@@ -103,6 +104,9 @@ public class IWAAuthenticatorTest extends PowerMockIdentityBaseTest {
 
     @Mock
     RealmService mockRealmService;
+
+    @Mock
+    MultiAttributeLoginService mockMultiAttributeLoginService;
 
     @Mock
     TenantManager mockTenantManager;
@@ -226,6 +230,7 @@ public class IWAAuthenticatorTest extends PowerMockIdentityBaseTest {
     private void initCommonMocks() throws Exception{
 
         dataHolder.setRealmService(mockRealmService);
+        dataHolder.setMultiAttributeLoginService(mockMultiAttributeLoginService);
         when(mockHttpRequest.getSession(anyBoolean())).thenReturn(mockSession);
         when(mockHttpRequest.getSession()).thenReturn(mockSession);
 

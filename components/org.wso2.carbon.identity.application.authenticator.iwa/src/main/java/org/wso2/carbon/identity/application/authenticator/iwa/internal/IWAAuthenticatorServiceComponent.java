@@ -27,6 +27,7 @@ import org.wso2.carbon.identity.application.authentication.framework.Application
 import org.wso2.carbon.identity.application.authenticator.iwa.IWAConstants;
 import org.wso2.carbon.identity.application.authenticator.iwa.IWAFederatedAuthenticator;
 import org.wso2.carbon.identity.application.authenticator.iwa.servlet.IWAServlet;
+import org.wso2.carbon.identity.multi.attribute.login.mgt.MultiAttributeLoginService;
 import org.wso2.carbon.user.core.service.RealmService;
 
 import javax.servlet.Servlet;
@@ -42,6 +43,10 @@ import javax.servlet.ServletException;
  * interface="org.wso2.carbon.user.core.service.RealmService"
  * cardinality="1..1" policy="dynamic" bind="setRealmService"
  * unbind="unsetRealmService"
+ * @scr.reference name="MultiAttributeLoginService"
+ * interface="org.wso2.carbon.identity.multi.attribute.login.mgt.MultiAttributeLoginService"
+ * cardinality="1..1" policy="dynamic" bind="setMultiAttributeLoginService"
+ * unbind="unsetMultiAttributeLoginService"
  */
 public class IWAAuthenticatorServiceComponent {
 
@@ -103,5 +108,21 @@ public class IWAAuthenticatorServiceComponent {
             log.debug("Unsetting the Realm Service");
         }
         dataHolder.setRealmService(null);
+    }
+
+    protected void setMultiAttributeLoginService(MultiAttributeLoginService multiAttributeLoginService) {
+
+        if (log.isDebugEnabled()) {
+            log.debug("Setting the Multi Attribute Login Service");
+        }
+        dataHolder.setMultiAttributeLoginService(multiAttributeLoginService);
+    }
+
+    protected void unsetMultiAttributeLoginService(MultiAttributeLoginService multiAttributeLoginService) {
+
+        if (log.isDebugEnabled()) {
+            log.debug("Unsetting the Multi Attribute Login Service");
+        }
+        dataHolder.setMultiAttributeLoginService(null);
     }
 }

@@ -216,6 +216,11 @@
                 <version>${org.wso2.carbon.identity.organization.management.core.version}</version>
                 <scope>test</scope>
             </dependency>
+            <dependency>
+                <groupId>org.wso2.carbon.identity.framework</groupId>
+                <artifactId>org.wso2.carbon.identity.multi.attribute.login.mgt</artifactId>
+                <version>${carbon.identity.framework.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -319,7 +324,7 @@
         <carbon.user.api.imp.pkg.version.range>[1.0.1, 2.0.0)</carbon.user.api.imp.pkg.version.range>
 
         <!--Carbon Identity Framework Version-->
-        <carbon.identity.framework.version>5.25.360</carbon.identity.framework.version>
+        <carbon.identity.framework.version>5.25.711</carbon.identity.framework.version>
         <carbon.identity.package.export.version>${carbon.identity.framework.version}
         </carbon.identity.package.export.version>
         <carbon.identity.package.import.version.range>[5.7.0, 6.0.0)</carbon.identity.package.import.version.range>
@@ -333,7 +338,7 @@
         <slf4j.api.version>1.7.12</slf4j.api.version>
         <mockito.version>1.10.19</mockito.version>
         <powermock.version>1.6.6</powermock.version>
-        <org.wso2.carbon.identity.testutil.version>5.25.360</org.wso2.carbon.identity.testutil.version>
+        <org.wso2.carbon.identity.testutil.version>5.25.711</org.wso2.carbon.identity.testutil.version>
         <org.wso2.carbon.identity.organization.management.core.version>1.0.0
         </org.wso2.carbon.identity.organization.management.core.version>
     </properties>

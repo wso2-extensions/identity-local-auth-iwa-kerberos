@@ -35,6 +35,7 @@ import org.wso2.carbon.identity.application.authentication.framework.exception.A
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.application.authenticator.iwa.internal.IWAServiceDataHolder;
 import org.wso2.carbon.identity.application.common.model.Property;
+import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.identity.testutil.powermock.PowerMockIdentityBaseTest;
 import org.wso2.carbon.user.core.UserRealm;
@@ -65,7 +66,7 @@ import static org.powermock.api.mockito.PowerMockito.doAnswer;
 import static org.powermock.api.mockito.PowerMockito.mockStatic;
 import static org.powermock.api.mockito.PowerMockito.when;
 
-@PrepareForTest({IdentityUtil.class, IWAAuthenticationUtil.class, UserCoreUtil.class})
+@PrepareForTest({IdentityUtil.class, IWAAuthenticationUtil.class, UserCoreUtil.class, IdentityTenantUtil.class})
 @PowerMockIgnore("org.ietf.*")
 public class IWAAuthenticatorTest extends PowerMockIdentityBaseTest {
 
@@ -472,6 +473,8 @@ public class IWAAuthenticatorTest extends PowerMockIdentityBaseTest {
         when(mockUserStoreManager.isExistingUser(anyString())).thenReturn(true);
 
         when(IWAAuthenticationUtil.processToken(token)).thenReturn("wso2@IS.LOCAL");
+        mockStatic(IdentityTenantUtil.class);
+        when(IdentityTenantUtil.getTenantId(anyString())).thenReturn(-1234);
 
         iwaLocalAuthenticator.processAuthenticationResponse(
                 mockHttpRequest, mockHttpResponse, mockAuthenticationContext);

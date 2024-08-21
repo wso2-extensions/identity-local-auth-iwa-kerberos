@@ -43,8 +43,10 @@ import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 import java.security.PrivilegedActionException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import javax.security.auth.login.LoginException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -212,31 +214,43 @@ public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implemen
                                                                        String userStoreDomains)
             throws AuthenticationFailedException {
 
-        String userStoreDomainForUser = null;
         IWAAuthenticatedUserBean authenticatedUserBean = new IWAAuthenticatedUserBean();
-        try {
-            for (String userStoreDomain : userStoreDomains.split(",")) {
-                resolveUserFromUserStore(
-                        authenticatedUserBean, authenticatedUserName, tenantDomain, userStoreDomain.trim());
-                if (authenticatedUserBean.isUserExists()) {
-                    userStoreDomainForUser = userStoreDomain.trim();
-                    break;
+        authenticatedUserBean.setTenantDomain(tenantDomain);
+        authenticatedUserBean.setUser(authenticatedUserName);
+        MultiAttributeLoginService multiAttributeLoginService =
+                IWAServiceDataHolder.getInstance().getMultiAttributeLoginService();
+
+        if (multiAttributeLoginService.isEnabled(tenantDomain)) {
+            List<String> userStoreDomainsList = Arrays.stream(userStoreDomains.toUpperCase().split(","))
+                    .map(String::trim).collect(Collectors.toList());
+            ResolvedUserResult resolvedUserResult = multiAttributeLoginService.resolveUser(
+                    authenticatedUserName, tenantDomain);
+            if (resolvedUserResult != null &&
+                    ResolvedUserResult.UserResolvedStatus.SUCCESS.equals(resolvedUserResult.getResolvedStatus()) &&
+                    userStoreDomainsList.contains(resolvedUserResult.getUser().getUserStoreDomain())) {
+                authenticatedUserBean.setUserExists(true);
+                authenticatedUserBean.setUserStoreDomain(resolvedUserResult.getUser().getUserStoreDomain());
+                if (StringUtils.isNotBlank(resolvedUserResult.getUser().getPreferredUsername())) {
+                    authenticatedUserBean.setUser(resolvedUserResult.getUser().getPreferredUsername());
                 }
             }
-
-            authenticatedUserBean.setTenantDomain(tenantDomain);
-            if (StringUtils.isEmpty(authenticatedUserBean.getUser())) {
-                authenticatedUserBean.setUser(authenticatedUserName);
+        } else {
+            try {
+                for (String userStoreDomain : userStoreDomains.split(",")) {
+                    if (isUserExistsInUserStore(authenticatedUserName, tenantDomain, userStoreDomain.trim())) {
+                        authenticatedUserBean.setUserExists(true);
+                        authenticatedUserBean.setUserStoreDomain(userStoreDomain.trim());
+                        break;
+                    }
+                }
+            } catch (AuthenticationFailedException e) {
+                String msg = "IWAApplicationAuthenticator failed to find the user:%s of tenantDomain=%s in neither " +
+                        "one of userstore domains: %s";
+                throw new AuthenticationFailedException(
+                        String.format(msg, authenticatedUserName, tenantDomain, userStoreDomains), e);
             }
-
-            authenticatedUserBean.setUserStoreDomain(userStoreDomainForUser);
-            return authenticatedUserBean;
-        } catch (AuthenticationFailedException e) {
-            String msg = "IWAApplicationAuthenticator failed to find the user:%s of tenantDomain=%s in neither one of" +
-                    " userstore domains: %s";
-            throw new AuthenticationFailedException(
-                    String.format(msg, authenticatedUserName, tenantDomain, userStoreDomains), e);
         }
+        return authenticatedUserBean;
     }
 
 
@@ -248,36 +262,20 @@ public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implemen
      * @param userStoreDomain
      * @return
      */
-    private void resolveUserFromUserStore(IWAAuthenticatedUserBean authenticatedUserBean,
-                                          String authenticatedUserName, String tenantDomain, String userStoreDomain)
+    private boolean isUserExistsInUserStore(String authenticatedUserName, String tenantDomain, String userStoreDomain)
             throws AuthenticationFailedException {
 
-        MultiAttributeLoginService multiAttributeLoginService =
-                IWAServiceDataHolder.getInstance().getMultiAttributeLoginService();
-        if (multiAttributeLoginService.isEnabled(tenantDomain)) {
-            ResolvedUserResult resolvedUserResult =
-                    multiAttributeLoginService.resolveUser(authenticatedUserName, tenantDomain);
-            if (resolvedUserResult != null &&
-                    ResolvedUserResult.UserResolvedStatus.SUCCESS.equals(resolvedUserResult.getResolvedStatus())) {
-                authenticatedUserBean.setUserExists(true);
-                if (StringUtils.isNotBlank(resolvedUserResult.getUser().getPreferredUsername())) {
-                    authenticatedUserBean.setUser(resolvedUserResult.getUser().getPreferredUsername());
-                }
-            }
-        } else {
-            UserStoreManager userStoreManager;
-            try {
-                String userNameWithUserStoreDomain = IdentityUtil.addDomainToName(authenticatedUserName,
-                        userStoreDomain);
-                userStoreManager = getPrimaryUserStoreManager(tenantDomain);
-                // check whether the user exists in the given user store domain
-                authenticatedUserBean.setUserExists(userStoreManager.isExistingUser(userNameWithUserStoreDomain));
-
-            } catch (UserStoreException e) {
-                String errorMsg = "Error when searching for user: %s in '%s' userStoreDomain in '%s' tenant.";
-                throw new AuthenticationFailedException(
-                        String.format(errorMsg, authenticatedUserName, userStoreDomain, tenantDomain), e);
-            }
+        UserStoreManager userStoreManager;
+        try {
+            String userNameWithUserStoreDomain = IdentityUtil.addDomainToName(authenticatedUserName,
+                    userStoreDomain);
+            userStoreManager = getPrimaryUserStoreManager(tenantDomain);
+            // check whether the user exists in the given user store domain
+            return userStoreManager.isExistingUser(userNameWithUserStoreDomain);
+        } catch (UserStoreException e) {
+            String errorMsg = "Error when searching for user: %s in '%s' userStoreDomain in '%s' tenant.";
+            throw new AuthenticationFailedException(
+                    String.format(errorMsg, authenticatedUserName, userStoreDomain, tenantDomain), e);
         }
     }
 

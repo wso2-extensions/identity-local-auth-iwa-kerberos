@@ -39,6 +39,7 @@ import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.core.UserStoreManager;
 import org.wso2.carbon.user.core.claim.Claim;
 import org.wso2.carbon.user.core.service.RealmService;
+import org.wso2.carbon.user.core.util.UserCoreUtil;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 import java.security.PrivilegedActionException;
@@ -230,8 +231,9 @@ public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implemen
                     userStoreDomainsList.contains(resolvedUserResult.getUser().getUserStoreDomain())) {
                 authenticatedUserBean.setUserExists(true);
                 authenticatedUserBean.setUserStoreDomain(resolvedUserResult.getUser().getUserStoreDomain());
-                if (StringUtils.isNotBlank(resolvedUserResult.getUser().getPreferredUsername())) {
-                    authenticatedUserBean.setUser(resolvedUserResult.getUser().getPreferredUsername());
+                if (StringUtils.isNotBlank(resolvedUserResult.getUser().getUsername())) {
+                    authenticatedUserBean.setUser(
+                            UserCoreUtil.removeDomainFromName(resolvedUserResult.getUser().getUsername()));
                 }
             }
         } else {

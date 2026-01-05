@@ -20,7 +20,6 @@ package org.wso2.carbon.identity.application.authenticator.iwa;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.osgi.service.http.HttpService;
 import org.testng.Assert;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
@@ -29,9 +28,6 @@ import org.wso2.carbon.identity.testutil.IdentityBaseTest;
 import org.wso2.carbon.user.core.service.RealmService;
 
 public class IWAServiceDataHolderTest extends IdentityBaseTest{
-
-    @Mock
-    HttpService mockedHttpService;
 
     @Mock
     RealmService mockedRealmService;
@@ -43,27 +39,6 @@ public class IWAServiceDataHolderTest extends IdentityBaseTest{
 
         MockitoAnnotations.initMocks(this);
         dataHolder = IWAServiceDataHolder.getInstance();
-    }
-
-    @Test
-    public void testSetHttpService() throws Exception {
-
-        dataHolder.setHttpService(mockedHttpService);
-        Assert.assertEquals(FieldUtils.readField(dataHolder, "httpService", true), mockedHttpService);
-    }
-
-    @Test
-    public void testGetHttpService() {
-
-        dataHolder.setHttpService(mockedHttpService);
-        Assert.assertEquals(dataHolder.getHttpService(), mockedHttpService);
-    }
-
-    @Test (expectedExceptions = RuntimeException.class)
-    public void testGetHttpServiceException() {
-
-        dataHolder.setHttpService(null);
-        dataHolder.getHttpService();
     }
 
     @Test

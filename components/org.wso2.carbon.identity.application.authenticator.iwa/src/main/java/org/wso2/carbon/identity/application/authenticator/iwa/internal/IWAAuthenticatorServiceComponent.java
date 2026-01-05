@@ -19,24 +19,16 @@ package org.wso2.carbon.identity.application.authenticator.iwa.internal;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.eclipse.equinox.http.helper.ContextPathServletAdaptor;
 import org.osgi.service.component.ComponentContext;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
-import org.osgi.service.http.HttpService;
-import org.osgi.service.http.NamespaceException;
 import org.wso2.carbon.identity.application.authentication.framework.ApplicationAuthenticator;
-import org.wso2.carbon.identity.application.authenticator.iwa.IWAConstants;
 import org.wso2.carbon.identity.application.authenticator.iwa.IWAFederatedAuthenticator;
-import org.wso2.carbon.identity.application.authenticator.iwa.servlet.IWAServlet;
 import org.wso2.carbon.identity.multi.attribute.login.mgt.MultiAttributeLoginService;
 import org.wso2.carbon.user.core.service.RealmService;
-
-import javax.servlet.Servlet;
-import javax.servlet.ServletException;
 
 @Component(
         name = "identity.application.authenticator.iwa.component",
@@ -52,20 +44,11 @@ public class IWAAuthenticatorServiceComponent {
         try {
             IWAFederatedAuthenticator iwaFederatedAuthenticator = new IWAFederatedAuthenticator();
 
-            // Register iwa servlet
-            Servlet iwaServlet = new ContextPathServletAdaptor(new IWAServlet(), IWAConstants.IWA_URL);
-
-            HttpService httpService = dataHolder.getHttpService();
-            httpService.registerServlet(IWAConstants.IWA_URL, iwaServlet, null, null);
-
             ctxt.getBundleContext().registerService(ApplicationAuthenticator.class.getName(),
                                                     iwaFederatedAuthenticator, null);
             if (log.isDebugEnabled()) {
                 log.debug("IWAFederatedAuthenticator bundle is activated");
             }
-        } catch (NamespaceException | ServletException e) {
-            log.error("Error when registering the IWA servlet, '"
-                      + IWAConstants.IWA_URL + "' may be already in use." + e);
         } catch (Throwable e) {
             log.error("IWAFederatedAuthenticator bundle activation failed");
         }
@@ -75,27 +58,6 @@ public class IWAAuthenticatorServiceComponent {
         if (log.isDebugEnabled()) {
             log.debug("IWAFederatedAuthenticator bundle is deactivated");
         }
-    }
-
-    @Reference(
-            name = "osgi.httpservice",
-            service = HttpService.class,
-            cardinality = ReferenceCardinality.MANDATORY,
-            policy = ReferencePolicy.DYNAMIC,
-            unbind = "unsetHttpService"
-    )
-    protected void setHttpService(HttpService httpService) {
-        if (log.isDebugEnabled()) {
-            log.debug("HTTP Service is set in the IWA SSO bundle");
-        }
-        dataHolder.setHttpService(httpService);
-    }
-
-    protected void unsetHttpService(HttpService httpService) {
-        if (log.isDebugEnabled()) {
-            log.debug("HTTP Service is unset in the IWA SSO bundle");
-        }
-        dataHolder.setHttpService(null);
     }
 
     @Reference(

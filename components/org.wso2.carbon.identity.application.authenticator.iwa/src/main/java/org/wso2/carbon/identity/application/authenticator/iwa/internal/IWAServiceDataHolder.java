@@ -17,9 +17,6 @@
  */
 package org.wso2.carbon.identity.application.authenticator.iwa.internal;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.osgi.service.http.HttpService;
 import org.wso2.carbon.identity.multi.attribute.login.mgt.MultiAttributeLoginService;
 import org.wso2.carbon.user.core.service.RealmService;
 
@@ -28,10 +25,8 @@ import org.wso2.carbon.user.core.service.RealmService;
  */
 public class IWAServiceDataHolder {
 
-    private HttpService httpService;
     private RealmService realmService;
     private MultiAttributeLoginService multiAttributeLoginService;
-    private static final Log log = LogFactory.getLog(IWAServiceDataHolder.class);
 
     private static IWAServiceDataHolder instance = new IWAServiceDataHolder();
 
@@ -51,17 +46,6 @@ public class IWAServiceDataHolder {
             throw new RuntimeException("Realm Service cannot be null. Component has not initialized properly.");
         }
         return realmService;
-    }
-
-    public HttpService getHttpService() {
-        if (httpService == null) {
-            throw new RuntimeException("HTTP Service cannot be null. Component has not initialized properly.");
-        }
-        return httpService;
-    }
-
-    public void setHttpService(HttpService httpService) {
-        this.httpService = httpService;
     }
 
     public MultiAttributeLoginService getMultiAttributeLoginService() {

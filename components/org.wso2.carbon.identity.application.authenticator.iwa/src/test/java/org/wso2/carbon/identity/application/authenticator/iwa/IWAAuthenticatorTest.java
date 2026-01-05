@@ -22,11 +22,13 @@ import org.apache.commons.lang.StringUtils;
 import org.ietf.jgss.GSSCredential;
 import org.ietf.jgss.GSSException;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-import org.powermock.core.classloader.annotations.PowerMockIgnore;
-import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.testng.Assert;
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -40,7 +42,6 @@ import org.wso2.carbon.identity.core.ServiceURLBuilder;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.identity.multi.attribute.login.mgt.MultiAttributeLoginService;
-import org.wso2.carbon.identity.testutil.powermock.PowerMockIdentityBaseTest;
 import org.wso2.carbon.user.core.UserRealm;
 import org.wso2.carbon.user.core.UserStoreException;
 import org.wso2.carbon.user.core.UserStoreManager;
@@ -62,18 +63,15 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyBoolean;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.anyString;
-import static org.powermock.api.mockito.PowerMockito.doAnswer;
-import static org.powermock.api.mockito.PowerMockito.mockStatic;
-import static org.powermock.api.mockito.PowerMockito.when;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
 
-@PrepareForTest({IdentityUtil.class, IWAAuthenticationUtil.class, UserCoreUtil.class, IdentityTenantUtil.class,
-        ServiceURLBuilder.class})
-@PowerMockIgnore("org.ietf.*")
-public class IWAAuthenticatorTest extends PowerMockIdentityBaseTest {
+public class IWAAuthenticatorTest {
 
     private static final String IWA_LOCAL_AUTHENTICATOR_NAME = "IWALocalAuthenticator";
     private static final String IWA_LOCAL_AUTHENTICATOR_FRIENDLY_NAME = "iwa-local";
@@ -126,6 +124,12 @@ public class IWAAuthenticatorTest extends PowerMockIdentityBaseTest {
     @Mock
     ServiceURL serviceURL;
 
+    private MockedStatic<IdentityUtil> mockedIdentityUtil;
+    private MockedStatic<IWAAuthenticationUtil> mockedIWAAuthenticationUtil;
+    private MockedStatic<UserCoreUtil> mockedUserCoreUtil;
+    private MockedStatic<IdentityTenantUtil> mockedIdentityTenantUtil;
+    private MockedStatic<ServiceURLBuilder> mockedServiceURLBuilder;
+
     private AbstractIWAAuthenticator iwaLocalAuthenticator;
     private AbstractIWAAuthenticator iwaFederatedAuthenticator;
     private List<Property> federatedAuthenticatorConfigs;
@@ -141,6 +145,62 @@ public class IWAAuthenticatorTest extends PowerMockIdentityBaseTest {
         federatedAuthenticatorConfigs = new ArrayList<>();
         token = Files.readAllBytes(Paths.get(TOKEN_PATH));
         dataHolder = IWAServiceDataHolder.getInstance();
+    }
+
+    @BeforeMethod
+    public void setUpMethod() {
+        
+        // Initialize static mocks before each test method
+        // First ensure any existing mocks are cleaned up
+        if (mockedIdentityUtil != null) {
+            closeStaticMock(mockedIdentityUtil);
+        }
+        if (mockedIWAAuthenticationUtil != null) {
+            closeStaticMock(mockedIWAAuthenticationUtil);
+        }
+        if (mockedUserCoreUtil != null) {
+            closeStaticMock(mockedUserCoreUtil);
+        }
+        if (mockedIdentityTenantUtil != null) {
+            closeStaticMock(mockedIdentityTenantUtil);
+        }
+        if (mockedServiceURLBuilder != null) {
+            closeStaticMock(mockedServiceURLBuilder);
+        }
+        
+        mockedIdentityUtil = mockStatic(IdentityUtil.class);
+        mockedIWAAuthenticationUtil = mockStatic(IWAAuthenticationUtil.class);
+        mockedUserCoreUtil = mockStatic(UserCoreUtil.class);
+        mockedIdentityTenantUtil = mockStatic(IdentityTenantUtil.class);
+        mockedServiceURLBuilder = mockStatic(ServiceURLBuilder.class);
+
+        MockitoAnnotations.initMocks(this);
+    }
+
+    @AfterMethod
+    public void tearDownMethod() {
+        // Close static mocks gracefully
+        closeStaticMock(mockedIdentityUtil);
+        closeStaticMock(mockedIWAAuthenticationUtil);
+        closeStaticMock(mockedUserCoreUtil);
+        closeStaticMock(mockedIdentityTenantUtil);
+        closeStaticMock(mockedServiceURLBuilder);
+        
+        mockedIdentityUtil = null;
+        mockedIWAAuthenticationUtil = null;
+        mockedUserCoreUtil = null;
+        mockedIdentityTenantUtil = null;
+        mockedServiceURLBuilder = null;
+    }
+
+    private void closeStaticMock(MockedStatic<?> mock) {
+        if (mock != null) {
+            try {
+                mock.close();
+            } catch (Exception ignored) {
+                // Ignore exceptions when closing already closed mocks
+            }
+        }
     }
 
     private void setMockHttpSession() {
@@ -188,20 +248,15 @@ public class IWAAuthenticatorTest extends PowerMockIdentityBaseTest {
 
     private void setMockIWAAuthenticationUtil() throws Exception {
 
-        mockStatic(IWAAuthenticationUtil.class);
-
-        doAnswer(new Answer<Object>(){
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
+        mockedIWAAuthenticationUtil.when(() -> IWAAuthenticationUtil.invalidateSession(any(HttpServletRequest.class)))
+            .thenAnswer((Answer<Object>) invocation -> {
                 HttpServletRequest key = (HttpServletRequest) invocation.getArguments()[0];
                 key.getSession().invalidate();
                 return null;
-            }
-        }).when(IWAAuthenticationUtil.class, "invalidateSession", any(HttpServletRequest.class));
+            });
 
-        when(IWAAuthenticationUtil.getDomainAwareUserName(anyString())).thenAnswer(new Answer<String>() {
-            @Override
-            public String answer(InvocationOnMock invocation) throws Throwable {
+        mockedIWAAuthenticationUtil.when(() -> IWAAuthenticationUtil.getDomainAwareUserName(anyString()))
+            .thenAnswer((Answer<String>) invocation -> {
                 Object[] args = invocation.getArguments();
                 if (args[0] != null && args.length > 0) {
                     int index = ((String) args[0]).lastIndexOf("@");
@@ -211,20 +266,16 @@ public class IWAAuthenticatorTest extends PowerMockIdentityBaseTest {
                     return (String) args[0];
                 }
                 return null;
-            }
-        });
+            });
     }
 
     private void setMockUserCoreUtil() {
 
-        mockStatic(UserCoreUtil.class);
-        when(UserCoreUtil.addTenantDomainToEntry(anyString(), anyString())).thenAnswer(new Answer<String>() {
-            @Override
-            public String answer(InvocationOnMock invocation) throws Throwable {
+        mockedUserCoreUtil.when(() -> UserCoreUtil.addTenantDomainToEntry(anyString(), anyString()))
+            .thenAnswer((Answer<String>) invocation -> {
                 Object[] args = invocation.getArguments();
                 return (String) args[0] + "@" + args[1];
-            }
-        });
+            });
     }
 
     private void initCommonMocks() throws Exception{
@@ -241,23 +292,23 @@ public class IWAAuthenticatorTest extends PowerMockIdentityBaseTest {
         when(mockUserStoreManager.getSecondaryUserStoreManager()).thenReturn(mockUserStoreManager);
         when(mockAuthenticationContext.getTenantDomain()).thenReturn("carbon.super");
 
-        mockStatic(IdentityUtil.class);
-        when(IdentityUtil.getPrimaryDomainName()).thenReturn("PRIMARY");
+        mockedIdentityUtil.when(IdentityUtil::getPrimaryDomainName).thenReturn("PRIMARY");
 
-        when(IdentityUtil.addDomainToName(anyString(), anyString())).thenAnswer(new Answer<String>() {
-            @Override
-            public String answer(InvocationOnMock invocation) throws Throwable {
+        mockedIdentityUtil.when(() -> IdentityUtil.addDomainToName(anyString(), anyString()))
+            .thenAnswer((Answer<String>) invocation -> {
                 Object[] args = invocation.getArguments();
                 if (args.length > 1 && (StringUtils.isNotEmpty((String)args[0]) &&
                         StringUtils.isNotEmpty((String)args[1]))) {
                     return (String) args[1] + "/" + (String) args[0];
                 }
                 return null;
-            }
-        });
+            });
 
-        when(IdentityUtil.isBlank(anyString())).thenReturn(false);
-        when(IdentityUtil.isBlank(null)).thenReturn(true);
+        mockedIdentityUtil.when(() -> IdentityUtil.isBlank(anyString())).thenReturn(false);
+        mockedIdentityUtil.when(() -> IdentityUtil.isBlank(anyString())).thenAnswer((Answer<Boolean>) invocation -> {
+            Object[] args = invocation.getArguments();
+            return args[0] == null || ((String) args[0]).trim().isEmpty();
+        });
 
         Class<?> clazz1 = IWALocalAuthenticator.class;
         Object localAuthObject = clazz1.newInstance();
@@ -313,8 +364,8 @@ public class IWAAuthenticatorTest extends PowerMockIdentityBaseTest {
     public void testInitiateAuthenticationRequest() throws Exception{
 
         mockServiceURLBuilder();
-        mockStatic(IdentityUtil.class);
-        when(IdentityUtil.getServerURL(anyString(), anyBoolean(), anyBoolean())).thenReturn(IWA_REDIRECT_URL);
+        mockedIdentityUtil.when(() -> IdentityUtil.getServerURL(anyString(), anyBoolean(), anyBoolean()))
+            .thenReturn(IWA_REDIRECT_URL);
         when(mockAuthenticationContext.getContextIdentifier()).thenReturn(IWA_AUTHENTICATOR_STATE);
 
         final String[] redirectUrl = new String[1];
@@ -343,8 +394,8 @@ public class IWAAuthenticatorTest extends PowerMockIdentityBaseTest {
     public void testInitiateInvalidAuthenticationRequest() throws Exception{
 
         mockServiceURLBuilder();
-        mockStatic(IdentityUtil.class);
-        when(IdentityUtil.getServerURL(anyString(), anyBoolean(), anyBoolean())).thenReturn(IWA_REDIRECT_URL);
+        mockedIdentityUtil.when(() -> IdentityUtil.getServerURL(anyString(), anyBoolean(), anyBoolean()))
+            .thenReturn(IWA_REDIRECT_URL);
         when(mockAuthenticationContext.getContextIdentifier()).thenReturn(IWA_AUTHENTICATOR_STATE);
 
         doAnswer(new Answer<Object>(){
@@ -397,7 +448,8 @@ public class IWAAuthenticatorTest extends PowerMockIdentityBaseTest {
         setMockUserCoreUtil();
 
         mockSession.setAttribute(IWAConstants.KERBEROS_TOKEN, Base64.encode("invalidKerberosTokenString".getBytes()));
-        when(IWAAuthenticationUtil.processToken(any(byte[].class))).thenThrow(new GSSException(0));
+        mockedIWAAuthenticationUtil.when(() -> IWAAuthenticationUtil.processToken(any(byte[].class)))
+            .thenThrow(new GSSException(0));
         try {
             iwaLocalAuthenticator.processAuthenticationResponse(
                     mockHttpRequest, mockHttpResponse, mockAuthenticationContext);
@@ -418,7 +470,8 @@ public class IWAAuthenticatorTest extends PowerMockIdentityBaseTest {
         setMockUserCoreUtil();
 
         mockSession.setAttribute(IWAConstants.KERBEROS_TOKEN, Base64.encode(token));
-        when(IWAAuthenticationUtil.processToken(any(byte[].class))).thenReturn(null);
+        mockedIWAAuthenticationUtil.when(() -> IWAAuthenticationUtil.processToken(any(byte[].class)))
+            .thenReturn(null);
 
         try {
             iwaLocalAuthenticator.processAuthenticationResponse(
@@ -486,9 +539,10 @@ public class IWAAuthenticatorTest extends PowerMockIdentityBaseTest {
         mockSession.setAttribute(IWAConstants.KERBEROS_TOKEN, Base64.encode(token));
         when(mockUserStoreManager.isExistingUser(anyString())).thenReturn(true);
 
-        when(IWAAuthenticationUtil.processToken(token)).thenReturn("wso2@IS.LOCAL");
-        mockStatic(IdentityTenantUtil.class);
-        when(IdentityTenantUtil.getTenantId(anyString())).thenReturn(-1234);
+        mockedIWAAuthenticationUtil.when(() -> IWAAuthenticationUtil.processToken(token))
+            .thenReturn("wso2@IS.LOCAL");
+        mockedIdentityTenantUtil.when(() -> IdentityTenantUtil.getTenantId(anyString()))
+            .thenReturn(-1234);
 
         iwaLocalAuthenticator.processAuthenticationResponse(
                 mockHttpRequest, mockHttpResponse, mockAuthenticationContext);
@@ -585,8 +639,9 @@ public class IWAAuthenticatorTest extends PowerMockIdentityBaseTest {
         when(mockHttpRequest.getSession(anyBoolean())).thenReturn(mockSession);
         when(mockHttpRequest.getSession()).thenReturn(mockSession);
 
-        when(IWAAuthenticationUtil.createCredentials(anyString(), any(char[].class))).thenReturn(mockGSSCredential);
-        when(IWAAuthenticationUtil.processToken(
+        mockedIWAAuthenticationUtil.when(() -> IWAAuthenticationUtil.createCredentials(anyString(), any(char[].class)))
+            .thenReturn(mockGSSCredential);
+        mockedIWAAuthenticationUtil.when(() -> IWAAuthenticationUtil.processToken(
                 any(byte[].class), any(GSSCredential.class))).thenReturn("wso2@IS.LOCAL");
 
         if (StringUtils.isNotEmpty(propertyMap.get(USER_STORE_DOMAINS))) {
@@ -620,7 +675,8 @@ public class IWAAuthenticatorTest extends PowerMockIdentityBaseTest {
         when(mockHttpRequest.getSession(anyBoolean())).thenReturn(mockSession);
         when(mockHttpRequest.getSession()).thenReturn(mockSession);
 
-        when(IWAAuthenticationUtil.createCredentials(anyString(), any(char[].class))).thenThrow(new GSSException(0));
+        mockedIWAAuthenticationUtil.when(() -> IWAAuthenticationUtil.createCredentials(anyString(), any(char[].class)))
+            .thenThrow(new GSSException(0));
 
         try {
             iwaFederatedAuthenticator.processAuthenticationResponse(
@@ -649,8 +705,9 @@ public class IWAAuthenticatorTest extends PowerMockIdentityBaseTest {
         when(mockHttpRequest.getSession(anyBoolean())).thenReturn(mockSession);
         when(mockHttpRequest.getSession()).thenReturn(mockSession);
 
-        when(IWAAuthenticationUtil.createCredentials(anyString(), any(char[].class))).thenReturn(mockGSSCredential);
-        when(IWAAuthenticationUtil.processToken(
+        mockedIWAAuthenticationUtil.when(() -> IWAAuthenticationUtil.createCredentials(anyString(), any(char[].class)))
+            .thenReturn(mockGSSCredential);
+        mockedIWAAuthenticationUtil.when(() -> IWAAuthenticationUtil.processToken(
                 any(byte[].class), any(GSSCredential.class))).thenReturn("wso2@IS.LOCAL");
 
         when(mockUserStoreManager.isExistingUser(anyString())).thenReturn(false);
@@ -685,8 +742,9 @@ public class IWAAuthenticatorTest extends PowerMockIdentityBaseTest {
         when(mockHttpRequest.getSession(anyBoolean())).thenReturn(mockSession);
         when(mockHttpRequest.getSession()).thenReturn(mockSession);
 
-        when(IWAAuthenticationUtil.createCredentials(anyString(), any(char[].class))).thenReturn(mockGSSCredential);
-        when(IWAAuthenticationUtil.processToken(
+        mockedIWAAuthenticationUtil.when(() -> IWAAuthenticationUtil.createCredentials(anyString(), any(char[].class)))
+            .thenReturn(mockGSSCredential);
+        mockedIWAAuthenticationUtil.when(() -> IWAAuthenticationUtil.processToken(
                 any(byte[].class), any(GSSCredential.class))).thenReturn("wso2@IS.LOCAL");
 
         when(mockUserStoreManager.getSecondaryUserStoreManager(anyString())).thenReturn(mockUserStoreManager);
@@ -721,8 +779,9 @@ public class IWAAuthenticatorTest extends PowerMockIdentityBaseTest {
         when(mockHttpRequest.getSession(anyBoolean())).thenReturn(mockSession);
         when(mockHttpRequest.getSession()).thenReturn(mockSession);
 
-        when(IWAAuthenticationUtil.createCredentials(anyString(), any(char[].class))).thenReturn(mockGSSCredential);
-        when(IWAAuthenticationUtil.processToken(
+        mockedIWAAuthenticationUtil.when(() -> IWAAuthenticationUtil.createCredentials(anyString(), any(char[].class)))
+            .thenReturn(mockGSSCredential);
+        mockedIWAAuthenticationUtil.when(() -> IWAAuthenticationUtil.processToken(
                 any(byte[].class), any(GSSCredential.class))).thenReturn("wso2@IS.LOCAL");
 
         when(mockUserStoreManager.getSecondaryUserStoreManager(anyString())).thenReturn(mockUserStoreManager);
@@ -784,7 +843,6 @@ public class IWAAuthenticatorTest extends PowerMockIdentityBaseTest {
             }
         };
 
-        mockStatic(ServiceURLBuilder.class);
-        when(ServiceURLBuilder.create()).thenReturn(builder);
+        mockedServiceURLBuilder.when(ServiceURLBuilder::create).thenReturn(builder);
     }
 }

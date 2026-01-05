@@ -34,7 +34,6 @@ import org.testng.annotations.Test;
 import org.wso2.carbon.identity.application.authentication.framework.ApplicationAuthenticator;
 import org.wso2.carbon.identity.application.authenticator.iwa.internal.IWAAuthenticatorServiceComponent;
 import org.wso2.carbon.identity.application.authenticator.iwa.internal.IWAServiceDataHolder;
-import org.wso2.carbon.identity.testutil.powermock.PowerMockIdentityBaseTest;
 import org.wso2.carbon.user.core.service.RealmService;
 
 import java.lang.reflect.Field;
@@ -42,13 +41,13 @@ import java.util.Dictionary;
 import javax.servlet.Servlet;
 import javax.servlet.ServletException;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.isNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doAnswer;
-import static org.powermock.api.mockito.PowerMockito.when;
+import static org.mockito.Mockito.when;
 
-public class IWAAuthenticatorServiceComponentTest extends PowerMockIdentityBaseTest {
+public class IWAAuthenticatorServiceComponentTest {
 
     @Mock
     HttpServiceImpl mockedHttpService;

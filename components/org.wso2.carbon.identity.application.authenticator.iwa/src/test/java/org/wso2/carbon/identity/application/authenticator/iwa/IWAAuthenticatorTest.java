@@ -149,6 +149,7 @@ public class IWAAuthenticatorTest {
 
     @BeforeMethod
     public void setUpMethod() {
+        
         // Initialize static mocks before each test method
         // First ensure any existing mocks are cleaned up
         if (mockedIdentityUtil != null) {

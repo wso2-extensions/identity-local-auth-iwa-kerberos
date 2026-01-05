@@ -26,7 +26,7 @@
 
     <groupId>org.wso2.carbon.identity.local.auth.iwa</groupId>
     <artifactId>identity-application-auth-iwa</artifactId>
-    <version>5.4.9</version>
+    <version>5.4.10-SNAPSHOT</version>
 
     <modelVersion>4.0.0</modelVersion>
     <packaging>pom</packaging>
@@ -41,7 +41,7 @@
         <developerConnection>scm:git:https://github.com/wso2-extensions/identity-local-auth-iwa-kerberos.git
         </developerConnection>
         <connection>scm:git:https://github.com/wso2-extensions/identity-local-auth-iwa-kerberos.git</connection>
-        <tag>v5.4.9</tag>
+        <tag>HEAD</tag>
     </scm>
 
 

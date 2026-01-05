@@ -21,6 +21,11 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.eclipse.equinox.http.helper.ContextPathServletAdaptor;
 import org.osgi.service.component.ComponentContext;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
 import org.osgi.service.http.HttpService;
 import org.osgi.service.http.NamespaceException;
 import org.wso2.carbon.identity.application.authentication.framework.ApplicationAuthenticator;
@@ -33,26 +38,16 @@ import org.wso2.carbon.user.core.service.RealmService;
 import javax.servlet.Servlet;
 import javax.servlet.ServletException;
 
-
-/**
- * @scr.component name="identity.application.authenticator.iwa.component" immediate="true"
- * @scr.reference name="osgi.httpservice" interface="org.osgi.service.http.HttpService"
- * cardinality="1..1" policy="dynamic" bind="setHttpService"
- * unbind="unsetHttpService"
- * @scr.reference name="user.realmservice.default"
- * interface="org.wso2.carbon.user.core.service.RealmService"
- * cardinality="1..1" policy="dynamic" bind="setRealmService"
- * unbind="unsetRealmService"
- * @scr.reference name="MultiAttributeLoginService"
- * interface="org.wso2.carbon.identity.multi.attribute.login.mgt.MultiAttributeLoginService"
- * cardinality="1..1" policy="dynamic" bind="setMultiAttributeLoginService"
- * unbind="unsetMultiAttributeLoginService"
- */
+@Component(
+        name = "identity.application.authenticator.iwa.component",
+        immediate = true
+)
 public class IWAAuthenticatorServiceComponent {
 
     private static final Log log = LogFactory.getLog(IWAAuthenticatorServiceComponent.class);
     private IWAServiceDataHolder dataHolder = IWAServiceDataHolder.getInstance();
 
+    @Activate
     protected void activate(ComponentContext ctxt) {
         try {
             IWAFederatedAuthenticator iwaFederatedAuthenticator = new IWAFederatedAuthenticator();
@@ -82,6 +77,13 @@ public class IWAAuthenticatorServiceComponent {
         }
     }
 
+    @Reference(
+            name = "osgi.httpservice",
+            service = HttpService.class,
+            cardinality = ReferenceCardinality.MANDATORY,
+            policy = ReferencePolicy.DYNAMIC,
+            unbind = "unsetHttpService"
+    )
     protected void setHttpService(HttpService httpService) {
         if (log.isDebugEnabled()) {
             log.debug("HTTP Service is set in the IWA SSO bundle");
@@ -96,6 +98,13 @@ public class IWAAuthenticatorServiceComponent {
         dataHolder.setHttpService(null);
     }
 
+    @Reference(
+            name = "user.realmservice.default",
+            service = RealmService.class,
+            cardinality = ReferenceCardinality.MANDATORY,
+            policy = ReferencePolicy.DYNAMIC,
+            unbind = "unsetRealmService"
+    )
     protected void setRealmService(RealmService realmService) {
         if (log.isDebugEnabled()) {
             log.debug("Setting the Realm Service");
@@ -110,6 +119,13 @@ public class IWAAuthenticatorServiceComponent {
         dataHolder.setRealmService(null);
     }
 
+    @Reference(
+            name = "MultiAttributeLoginService",
+            service = MultiAttributeLoginService.class,
+            cardinality = ReferenceCardinality.MANDATORY,
+            policy = ReferencePolicy.DYNAMIC,
+            unbind = "unsetMultiAttributeLoginService"
+    )
     protected void setMultiAttributeLoginService(MultiAttributeLoginService multiAttributeLoginService) {
 
         if (log.isDebugEnabled()) {

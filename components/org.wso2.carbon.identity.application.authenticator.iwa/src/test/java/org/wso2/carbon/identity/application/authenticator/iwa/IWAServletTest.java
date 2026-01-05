@@ -18,12 +18,14 @@
 package org.wso2.carbon.identity.application.authenticator.iwa;
 
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.testng.Assert;
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
@@ -31,7 +33,6 @@ import org.wso2.carbon.identity.application.authenticator.iwa.servlet.IWAServlet
 import org.wso2.carbon.identity.core.ServiceURL;
 import org.wso2.carbon.identity.core.ServiceURLBuilder;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
-import org.wso2.carbon.identity.testutil.powermock.PowerMockIdentityBaseTest;
 
 import java.lang.reflect.Field;
 import java.util.Arrays;
@@ -42,16 +43,15 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyBoolean;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.anyString;
-import static org.powermock.api.mockito.PowerMockito.doAnswer;
-import static org.powermock.api.mockito.PowerMockito.mockStatic;
-import static org.powermock.api.mockito.PowerMockito.when;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
 
-@PrepareForTest ( {IdentityUtil.class, ServiceURLBuilder.class})
-public class IWAServletTest extends PowerMockIdentityBaseTest {
+public class IWAServletTest {
 
     private static final String NTLM_PROLOG = "TlRMTVNT";
     private static final String COMMON_AUTH_URL = "https://localhost:9443/commonauth";
@@ -69,6 +69,9 @@ public class IWAServletTest extends PowerMockIdentityBaseTest {
     @Mock
     ServiceURL serviceURL;
 
+    private MockedStatic<IdentityUtil> mockedIdentityUtil;
+    private MockedStatic<ServiceURLBuilder> mockedServiceURLBuilder;
+
     private ExtendedIWAServlet iwaServlet;
 
     class ExtendedIWAServlet extends IWAServlet {
@@ -82,6 +85,41 @@ public class IWAServletTest extends PowerMockIdentityBaseTest {
     public void setUp() {
 
         iwaServlet = new ExtendedIWAServlet();
+    }
+
+    @BeforeMethod
+    public void setUpMethod() {
+        MockitoAnnotations.initMocks(this);
+        
+        // First ensure any existing mocks are cleaned up
+        if (mockedIdentityUtil != null) {
+            closeStaticMock(mockedIdentityUtil);
+        }
+        if (mockedServiceURLBuilder != null) {
+            closeStaticMock(mockedServiceURLBuilder);
+        }
+        
+        mockedIdentityUtil = mockStatic(IdentityUtil.class);
+        mockedServiceURLBuilder = mockStatic(ServiceURLBuilder.class);
+    }
+
+    @AfterMethod
+    public void tearDownMethod() {
+        // Close static mocks gracefully
+        closeStaticMock(mockedIdentityUtil);
+        closeStaticMock(mockedServiceURLBuilder);
+        mockedIdentityUtil = null;
+        mockedServiceURLBuilder = null;
+    }
+
+    private void closeStaticMock(MockedStatic<?> mock) {
+        if (mock != null) {
+            try {
+                mock.close();
+            } catch (Exception ignored) {
+                // Ignore exceptions when closing already closed mocks
+            }
+        }
     }
 
     @DataProvider(name = "provideHttpRequestData")
@@ -112,8 +150,8 @@ public class IWAServletTest extends PowerMockIdentityBaseTest {
 
         setMockedLog();
         mockServiceURLBuilder();
-        mockStatic(IdentityUtil.class);
-        when(IdentityUtil.getServerURL(anyString(), anyBoolean(), anyBoolean())).thenReturn(COMMON_AUTH_URL);
+        mockedIdentityUtil.when(() -> IdentityUtil.getServerURL(anyString(), anyBoolean(), anyBoolean()))
+            .thenReturn(COMMON_AUTH_URL);
 
         HttpSession httpSession = (HttpSession) session;
 
@@ -224,8 +262,7 @@ public class IWAServletTest extends PowerMockIdentityBaseTest {
             }
         };
 
-        mockStatic(ServiceURLBuilder.class);
-        when(ServiceURLBuilder.create()).thenReturn(builder);
+        mockedServiceURLBuilder.when(ServiceURLBuilder::create).thenReturn(builder);
     }
 }
 

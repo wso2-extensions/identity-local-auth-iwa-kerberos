@@ -31,7 +31,6 @@ import org.testng.annotations.AfterTest;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
-import org.wso2.carbon.identity.testutil.powermock.PowerMockIdentityBaseTest;
 import org.wso2.carbon.user.core.claim.Claim;
 import sun.security.jgss.GSSManagerImpl;
 
@@ -44,12 +43,13 @@ import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.doAnswer;
-import static org.powermock.api.mockito.PowerMockito.when;
+import static org.mockito.Mockito.when;
 
-public class IWAAuthenticationUtilTest extends PowerMockIdentityBaseTest {
+public class IWAAuthenticationUtilTest {
 
     private static final String USERNAME_ATTRIBUTE_NAME = "username";
     private static final String JAAS_CONFIG_PATH = "src/test/resources/home/repository/conf/identity/jaas.conf";
@@ -77,10 +77,7 @@ public class IWAAuthenticationUtilTest extends PowerMockIdentityBaseTest {
 
     private GSSCredential gssCredentials;
 
-    @InjectMocks
-    private IWAAuthenticationUtil util;
     private byte[] token;
-    Object utilObject;
 
     @BeforeMethod
     public void setUp() throws Exception {
@@ -94,14 +91,11 @@ public class IWAAuthenticationUtilTest extends PowerMockIdentityBaseTest {
 
         System.setProperty("carbon.home", new File("src/test/resources/home").getAbsolutePath());
         setMockHttpSession();
-
-        Class<?> clazz = IWAAuthenticationUtil.class;
-        utilObject = clazz.newInstance();
     }
 
     @AfterTest
     public void cleanUp() throws Exception {
-        unSetMockedGSSManager(utilObject);
+        unSetMockedGSSManager();
     }
 
     public void setMockHttpSession() {
@@ -135,19 +129,19 @@ public class IWAAuthenticationUtilTest extends PowerMockIdentityBaseTest {
         }).when(mockSession).invalidate();
     }
 
-    public void setMockedGSSManager(Object utilObject) throws Exception {
+    public void setMockedGSSManager() throws Exception {
 
-        Field gssManagerField = utilObject.getClass().getDeclaredField("gssManager");
+        Field gssManagerField = IWAAuthenticationUtil.class.getDeclaredField("gssManager");
         gssManagerField.setAccessible(true);
-        gssManagerField.set(utilObject, mockedGSSManager);
+        gssManagerField.set(null, mockedGSSManager);
 
-        when(mockedGSSManager.createContext(any(GSSCredential.class))).thenReturn(mockedGSSContext);
+        when(mockedGSSManager.createContext(nullable(GSSCredential.class))).thenReturn(mockedGSSContext);
     }
 
-    public void unSetMockedGSSManager(Object utilObject) throws Exception {
-        Field gssManagerField = utilObject.getClass().getDeclaredField("gssManager");
+    public void unSetMockedGSSManager() throws Exception {
+        Field gssManagerField = IWAAuthenticationUtil.class.getDeclaredField("gssManager");
         gssManagerField.setAccessible(true);
-        gssManagerField.set(utilObject, GSSManager.getInstance());
+        gssManagerField.set(null, GSSManager.getInstance());
     }
 
     @Test
@@ -281,7 +275,7 @@ public class IWAAuthenticationUtilTest extends PowerMockIdentityBaseTest {
     @Test (dataProvider = "provideContextEstablishedData")
     public void testProcessTokenError(boolean isEstablished, String log) throws Exception {
 
-        setMockedGSSManager(utilObject);
+        setMockedGSSManager();
         when(mockedGSSContext.isEstablished()).thenReturn(isEstablished);
         when(mockedGSSContext.getSrcName()).thenReturn(mockedGSSName);
         when(mockedGSSContext.getTargName()).thenReturn(mockedGSSName);

@@ -21,6 +21,7 @@ package org.wso2.carbon.identity.application.authenticator.iwa.servlet;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.osgi.service.component.annotations.Component;
 import org.wso2.carbon.identity.application.authenticator.iwa.IWAAuthenticationUtil;
 import org.wso2.carbon.identity.application.authenticator.iwa.IWAConstants;
 import org.wso2.carbon.identity.core.ServiceURLBuilder;
@@ -28,6 +29,7 @@ import org.wso2.carbon.identity.core.URLBuilderException;
 
 import java.io.IOException;
 import java.net.URLEncoder;
+import javax.servlet.Servlet;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -39,6 +41,15 @@ import javax.servlet.http.HttpSession;
  * This class handles the IWA login requests. The implementation is based on the Spnego Authentication.
  */
 
+@Component(
+        service = Servlet.class,
+        immediate = true,
+        property = {
+                "osgi.http.whiteboard.servlet.pattern=" + IWAConstants.IWA_URL,
+                "osgi.http.whiteboard.servlet.name=IWAServlet",
+                "osgi.http.whiteboard.servlet.asyncSupported=true"
+        }
+)
 public class IWAServlet extends HttpServlet {
     static final long serialVersionUID = 1L;
     private static final Log log = LogFactory.getLog(IWAServlet.class);

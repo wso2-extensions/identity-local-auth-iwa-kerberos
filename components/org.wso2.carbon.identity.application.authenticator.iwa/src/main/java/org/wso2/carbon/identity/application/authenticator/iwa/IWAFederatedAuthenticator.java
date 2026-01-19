@@ -133,7 +133,7 @@ public class IWAFederatedAuthenticator extends AbstractIWAAuthenticator implemen
             AuthenticatedUser authenticatedUser = new AuthenticatedUser();
             authenticatedUser.setUserName(iwaAuthenticatedUserBean.getUser());
             authenticatedUser.setUserStoreDomain(iwaAuthenticatedUserBean.getUserStoreDomain());
-            authenticatedUser.setTenantDomain(MultitenantUtils.getTenantDomain(iwaAuthenticatedUserBean.getTenantDomain()));
+            authenticatedUser.setTenantDomain(iwaAuthenticatedUserBean.getTenantDomain());
             authenticatedUser.setAuthenticatedSubjectIdentifier(iwaAuthenticatedUserBean.getUser());
             authenticatedUser.setUserAttributes(
                     IWAAuthenticationUtil.buildClaimMappingMap(getUserClaims(iwaAuthenticatedUserBean)));

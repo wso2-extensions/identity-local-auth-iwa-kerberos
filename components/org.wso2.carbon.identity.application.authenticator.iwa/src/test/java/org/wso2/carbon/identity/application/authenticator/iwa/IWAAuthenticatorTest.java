@@ -50,8 +50,6 @@ import org.wso2.carbon.user.core.tenant.TenantManager;
 import org.wso2.carbon.user.core.util.UserCoreUtil;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -309,21 +307,6 @@ public class IWAAuthenticatorTest {
             Object[] args = invocation.getArguments();
             return args[0] == null || ((String) args[0]).trim().isEmpty();
         });
-
-        Class<?> clazz1 = IWALocalAuthenticator.class;
-        Object localAuthObject = clazz1.newInstance();
-        Field localAuthenticatorLogField = localAuthObject.getClass().getDeclaredField("log");
-        localAuthenticatorLogField.setAccessible(true);
-
-        Class<?> clazz2 = IWAFederatedAuthenticator.class;
-        Object federatedAuthObject = clazz2.newInstance();
-        Field federatedAuthenticatorLogField = federatedAuthObject.getClass().getDeclaredField("log");
-
-        Field modifiersField = Field.class.getDeclaredField("modifiers");
-        modifiersField.setAccessible(true);
-        modifiersField.setInt(federatedAuthenticatorLogField, federatedAuthenticatorLogField.getModifiers() & ~Modifier.FINAL);
-
-        federatedAuthenticatorLogField.setAccessible(true);
     }
 
 

@@ -29,7 +29,7 @@ import org.wso2.carbon.identity.application.common.model.ClaimMapping;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.user.core.claim.Claim;
 import org.wso2.carbon.utils.CarbonUtils;
-import sun.security.jgss.GSSUtil;
+import org.ietf.jgss.Oid;
 
 import java.nio.file.Paths;
 import java.security.Principal;
@@ -165,8 +165,12 @@ public class IWAAuthenticationUtil {
     private static GSSCredential createCredentialsForSubject(final Subject subject) throws PrivilegedActionException {
         final PrivilegedExceptionAction<GSSCredential> action = new PrivilegedExceptionAction<GSSCredential>() {
             public GSSCredential run() throws GSSException {
-                return gssManager.createCredential(null, GSSCredential.INDEFINITE_LIFETIME,
-                        GSSUtil.GSS_SPNEGO_MECH_OID, GSSCredential.ACCEPT_ONLY);
+                return gssManager.createCredential(
+                    null,
+                    GSSCredential.INDEFINITE_LIFETIME,
+                    new Oid("1.3.6.1.5.5.2"),
+                    GSSCredential.ACCEPT_ONLY
+            );
             }
         };
 

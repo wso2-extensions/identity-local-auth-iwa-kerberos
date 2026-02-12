@@ -80,14 +80,6 @@ public class IWAAuthenticatorServiceComponentTest {
             super.deactivate(ctxt);
         }
 
-        public void setHttpService(HttpService httpService) {
-            super.setHttpService(httpService);
-        }
-
-        public void unsetHttpService(HttpService httpService) {
-            super.unsetHttpService(httpService);
-        }
-
         public void setRealmService(RealmService realmService) {
             super.setRealmService(realmService);
         }
@@ -131,21 +123,8 @@ public class IWAAuthenticatorServiceComponentTest {
     public void testActivate(final Exception thrownException, String log) throws Exception {
 
         when(mockedComponentContext.getBundleContext()).thenReturn(mockedBundleContext);
-        dataHolder.setHttpService(mockedHttpService);
 
         final ApplicationAuthenticator[] authenticator = new ApplicationAuthenticator[1];
-
-        doAnswer(new Answer<Object>(){
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                if (thrownException instanceof NamespaceException || thrownException instanceof ServletException) {
-                    throw thrownException;
-                } else {
-                    url[0] = (String) invocation.getArguments()[0];
-                    return null;
-                }
-            }
-        }).when(mockedHttpService).registerServlet(anyString(), any(Servlet.class), isNull(Dictionary.class), isNull(HttpContext.class));
 
         doAnswer(new Answer<Object>(){
             @Override
@@ -163,7 +142,6 @@ public class IWAAuthenticatorServiceComponentTest {
 
         serviceComponent.activate(mockedComponentContext);
         if (thrownException == null) {
-            Assert.assertEquals(url[0], IWA_URL, "Servlet is not registered for iwa url");
             Assert.assertTrue(authenticator[0] instanceof IWAFederatedAuthenticator,
                     "IWAFederatedAuthenticator in not registered as a service");
         }
@@ -172,16 +150,6 @@ public class IWAAuthenticatorServiceComponentTest {
     @Test
     public void testDeactivate() {
         serviceComponent.deactivate(mockedComponentContext);
-    }
-
-    @Test
-    public void testSetHttpService() {
-        serviceComponent.setHttpService(mockedHttpService);
-    }
-
-    @Test
-    public void testUnsetHttpService() {
-        serviceComponent.unsetHttpService(mockedHttpService);
     }
 
     @Test

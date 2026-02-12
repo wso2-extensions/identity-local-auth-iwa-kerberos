@@ -32,7 +32,6 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import org.wso2.carbon.user.core.claim.Claim;
-import sun.security.jgss.GSSManagerImpl;
 
 import java.io.File;
 import java.lang.reflect.Field;
@@ -67,7 +66,7 @@ public class IWAAuthenticationUtilTest {
     HttpSession mockSession;
 
     @Mock
-    GSSManagerImpl mockedGSSManager;
+    GSSManager mockedGSSManager;
 
     @Mock
     GSSContext mockedGSSContext;

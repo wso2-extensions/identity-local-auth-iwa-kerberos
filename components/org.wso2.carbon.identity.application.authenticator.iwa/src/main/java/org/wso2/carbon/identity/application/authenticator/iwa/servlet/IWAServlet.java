@@ -152,6 +152,8 @@ public class IWAServlet extends HttpServlet {
 
     @Override
     public void init(ServletConfig config) throws ServletException {
+
+        super.init(config);
         // set the kerberos config path
         IWAAuthenticationUtil.setConfigFilePaths();
     }
